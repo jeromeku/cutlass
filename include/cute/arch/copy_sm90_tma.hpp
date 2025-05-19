@@ -622,7 +622,26 @@ struct SM90_TMA_LOAD_IM2COL
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TMA_LOAD_MULTICAST: Initiates a TMA copy from global memory to shared memory
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(TMA_DEBUG)
+__device__ int block_sync = 0;
 
+template <typename... Coords>
+__device__ void print_tma_coords(Coords... coords) {
+    while (atomicAdd(&block_sync, 0) != blockIdx.x) {
+        // spin-wait
+    }
+
+    if (threadIdx.x == 0) {
+        printf("block id: %d, cluster id: %d, coords: ", blockIdx.x, cute::block_rank_in_cluster());
+        ((printf("%d ", coords)), ...);  // Fold expression to unpack and print all coords
+        printf("\n");
+    }
+
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        atomicAdd(&block_sync, 1);
+    }
+}
+#endif
 struct SM90_TMA_LOAD_MULTICAST_1D
 {
   CUTE_HOST_DEVICE static void
@@ -663,6 +682,7 @@ struct SM90_TMA_LOAD_MULTICAST_2D
 #if defined(CUTE_ARCH_TMA_SM120_ENABLED)
     CUTE_INVALID_CONTROL_PATH("Trying to use tma without CUTE_ARCH_TMA_SM90_ENABLED.");
 #endif
+    print_tma_coords(crd0, crd1);
     uint64_t gmem_int_desc = reinterpret_cast<uint64_t>(desc_ptr);
     uint32_t smem_int_mbar = cast_smem_ptr_to_uint(mbar_ptr);
     uint32_t smem_int_ptr  = cast_smem_ptr_to_uint(smem_ptr);
