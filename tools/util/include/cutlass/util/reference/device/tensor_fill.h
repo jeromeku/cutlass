@@ -1808,7 +1808,7 @@ void BlockFillSequential(
   Layout::TensorCoord size(static_cast<Layout::Index>(capacity)); // -Wconversion
   Layout layout = Layout::packed(size);
   TensorView<Element, Layout> view(ptr, layout, size);
-
+  printf("Layout rank: %d %d\n", layout.kRank, layout.kStrideRank);
   Array<Element, Layout::kRank> c{};
   c[0] = v;
 

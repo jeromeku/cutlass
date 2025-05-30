@@ -50,7 +50,7 @@
 #include "cutlass/epilogue/thread/linear_combination.h"
 #include "cutlass/epilogue/thread/linear_combination_bias_elementwise.h"
 
-#include "../../common/cutlass_unit_test.h"
+#include "cutlass_unit_test.h"
 
 #include "gemm_testbed_3x_evt.hpp"
 #include "sm90_evt_operations.hpp"

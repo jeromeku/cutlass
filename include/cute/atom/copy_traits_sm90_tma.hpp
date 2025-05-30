@@ -1048,7 +1048,7 @@ namespace cute
                 << "\nswizzle        " << smem_swizzle
                 << "\nl2Promotion    " << tma_l2Promotion
                 << "\noobFill        " << tma_oobFill << std::endl;
-      if (result != cudaSuccess)
+      if (result != CUDA_SUCCESS)
       {
         std::cerr << "Error: Failed to initialize the TMA descriptor " << result << std::endl;
         assert(false);

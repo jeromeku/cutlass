@@ -642,6 +642,7 @@ __device__ void print_tma_coords(Coords... coords) {
     }
 }
 #endif
+
 struct SM90_TMA_LOAD_MULTICAST_1D
 {
   CUTE_HOST_DEVICE static void
@@ -682,7 +683,9 @@ struct SM90_TMA_LOAD_MULTICAST_2D
 #if defined(CUTE_ARCH_TMA_SM120_ENABLED)
     CUTE_INVALID_CONTROL_PATH("Trying to use tma without CUTE_ARCH_TMA_SM90_ENABLED.");
 #endif
+  #if defined(TMA_DEBUG)
     print_tma_coords(crd0, crd1);
+  #endif
     uint64_t gmem_int_desc = reinterpret_cast<uint64_t>(desc_ptr);
     uint32_t smem_int_mbar = cast_smem_ptr_to_uint(mbar_ptr);
     uint32_t smem_int_ptr  = cast_smem_ptr_to_uint(smem_ptr);
