@@ -35,15 +35,20 @@ Utilities for enumerating CUTLASS library kernels
 """
 
 import argparse
+import copy
 import enum
-from itertools import chain, product
 import logging
 import os.path
 import shutil
 import sys
-import copy
+from itertools import chain, product
 from typing import Any, Dict, Optional, Sequence, Tuple
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
 _LOGGER = logging.getLogger(__name__)
 
 def logging_prefix(indent_level: int = 0) -> str:
@@ -83,18 +88,19 @@ _args, _ = _parser.parse_known_args()
 # a relative import), which is the problem this variable is being used to solve in the
 # first place.
 import builtins
+
 builtins.CUTLASS_IGNORE_PACKAGE = _args.disable_cutlass_package_imports
 
 try:
   if CUTLASS_IGNORE_PACKAGE:
     raise ImportError("Disabling attempt to import cutlass_library")
+  from cutlass_library.emit_kernel_listing import emit_gemm_kernel_testlist
   from cutlass_library.library import *
   from cutlass_library.manifest import *
-  from cutlass_library.emit_kernel_listing import emit_gemm_kernel_testlist 
 except ImportError:
+  from emit_kernel_listing import emit_gemm_kernel_testlist
   from library import *
   from manifest import *
-  from emit_kernel_listing import emit_gemm_kernel_testlist 
 ###################################################################################################
 
 #
@@ -5205,29 +5211,29 @@ def GenerateSM89(manifest, cuda_version):
 
 try:
     from .sm90_utils import (
-        generate_fp16_bf16_math_instructions_sm90,
-        generate_tf32_math_instructions_sm90,
-        generate_int8_math_instructions_sm90,
-        generate_fp8_math_instructions_sm90,
-        generate_mixed_dtype_math_instructions_sm90,
-        make_sparse_math_instructions,
-        generate_tile_descriptions_sm90,
-        get_valid_schedules,
-        generate_data_types_from_math_instruction,
-        fix_alignments,
+      fix_alignments,
+      generate_data_types_from_math_instruction,
+      generate_fp8_math_instructions_sm90,
+      generate_fp16_bf16_math_instructions_sm90,
+      generate_int8_math_instructions_sm90,
+      generate_mixed_dtype_math_instructions_sm90,
+      generate_tf32_math_instructions_sm90,
+      generate_tile_descriptions_sm90,
+      get_valid_schedules,
+      make_sparse_math_instructions,
     )
 except ImportError:
     from sm90_utils import (
-        generate_fp16_bf16_math_instructions_sm90,
-        generate_tf32_math_instructions_sm90,
-        generate_int8_math_instructions_sm90,
-        generate_fp8_math_instructions_sm90,
-        generate_mixed_dtype_math_instructions_sm90,
-        make_sparse_math_instructions,
-        generate_tile_descriptions_sm90,
-        get_valid_schedules,
-        generate_data_types_from_math_instruction,
-        fix_alignments,
+      fix_alignments,
+      generate_data_types_from_math_instruction,
+      generate_fp8_math_instructions_sm90,
+      generate_fp16_bf16_math_instructions_sm90,
+      generate_int8_math_instructions_sm90,
+      generate_mixed_dtype_math_instructions_sm90,
+      generate_tf32_math_instructions_sm90,
+      generate_tile_descriptions_sm90,
+      get_valid_schedules,
+      make_sparse_math_instructions,
     )
 
 def GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.Universal3x):
@@ -11319,20 +11325,20 @@ if __name__ == "__main__":
   manifest = Manifest(args)
 
   archs = args.architectures.split(';')
-
-  GenerateSM50(manifest, args.cuda_version)
-  GenerateSM60(manifest, args.cuda_version)
-  GenerateSM61(manifest, args.cuda_version)
-  GenerateSM70(manifest, args.cuda_version)
-  GenerateSM75(manifest, args.cuda_version)
-  GenerateSM80(manifest, args.cuda_version)
-  GenerateSM89(manifest, args.cuda_version)
+  print(f"DEBUG_GENERATOR: {args}")
+  # GenerateSM50(manifest, args.cuda_version)
+  # GenerateSM60(manifest, args.cuda_version)
+  # GenerateSM61(manifest, args.cuda_version)
+  # GenerateSM70(manifest, args.cuda_version)
+  # GenerateSM75(manifest, args.cuda_version)
+  # GenerateSM80(manifest, args.cuda_version)
+  # GenerateSM89(manifest, args.cuda_version)
   GenerateSM90(manifest, args.cuda_version)
    
-  blackwell_enabled_arch = any(arch in ["100a", "100f", "101a", "101f", "120a", "120f"] for arch in archs)
-  if blackwell_enabled_arch:
-    GenerateSM100(manifest, args.cuda_version)
-    GenerateSM120(manifest, args.cuda_version)
+  # blackwell_enabled_arch = any(arch in ["100a", "100f", "101a", "101f", "120a", "120f"] for arch in archs)
+  # if blackwell_enabled_arch:
+  #   GenerateSM100(manifest, args.cuda_version)
+  #   GenerateSM120(manifest, args.cuda_version)
   
 
   if 'library' in args.generator_target.split(','):

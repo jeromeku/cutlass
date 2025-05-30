@@ -44,23 +44,29 @@ try:
   import builtins
   if hasattr(builtins, "CUTLASS_IGNORE_PACKAGE") and CUTLASS_IGNORE_PACKAGE == True:
     raise ImportError("Disabling attempt to import cutlass_library")
-  from cutlass_library.library import *
-  from cutlass_library.gemm_operation import *
-  from cutlass_library.rank_k_operation import *
-  from cutlass_library.rank_2k_operation import *
-  from cutlass_library.trmm_operation import *
-  from cutlass_library.symm_operation import *
   from cutlass_library.conv2d_operation import *
   from cutlass_library.conv3d_operation import *
+  from cutlass_library.gemm_operation import *
+  from cutlass_library.library import *
+  from cutlass_library.rank_2k_operation import *
+  from cutlass_library.rank_k_operation import *
+  from cutlass_library.symm_operation import *
+  from cutlass_library.trmm_operation import *
 except ImportError:
-  from library import *
-  from gemm_operation import *
-  from rank_k_operation import *
-  from rank_2k_operation import *
-  from trmm_operation import *
-  from symm_operation import *
   from conv2d_operation import *
   from conv3d_operation import *
+  from gemm_operation import *
+  from library import *
+  from rank_2k_operation import *
+  from rank_k_operation import *
+  from symm_operation import *
+  from trmm_operation import *
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
 
 ###################################################################################################
 _LOGGER = logging.getLogger(__name__)

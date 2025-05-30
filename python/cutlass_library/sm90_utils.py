@@ -35,15 +35,15 @@ Utilities for enumerating CUTLASS library SM90 kernels
 """
 
 import argparse
+import copy
 import enum
-from itertools import product
-import math
 import logging
+import math
 import os.path
 import shutil
 import sys
-import copy
-from typing import Any, Optional, Sequence, Tuple, List
+from itertools import product
+from typing import Any, List, Optional, Sequence, Tuple
 
 try:
   import builtins
@@ -52,6 +52,12 @@ try:
   from cutlass_library.library import *
 except ImportError:
   from library import *
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
 
 # NOTE: this is a duplicate of CudaToolkitVersionSatisfies in generator.py
 def CudaToolkitVersionSatisfies(semantic_ver_string, major, minor, patch = 0):
@@ -107,21 +113,21 @@ def get_pruning_level_from_global_level(global_level: int):
 
 try:
     from .sm90_shapes import (
-        SM90_MMA_MULTIPLIERS,
-        SM90_CLUSTER_SIZES,
-        SM90_WGMMA_SHAPES_TF32_DENSE,
-        SM90_WGMMA_SHAPES_FP16_BF16_DENSE,
-        SM90_WGMMA_SHAPES_FP8_DENSE,
-        SM90_WGMMA_SHAPES_INT8_DENSE,
+      SM90_CLUSTER_SIZES,
+      SM90_MMA_MULTIPLIERS,
+      SM90_WGMMA_SHAPES_FP8_DENSE,
+      SM90_WGMMA_SHAPES_FP16_BF16_DENSE,
+      SM90_WGMMA_SHAPES_INT8_DENSE,
+      SM90_WGMMA_SHAPES_TF32_DENSE,
     )
 except:
     from sm90_shapes import (
-        SM90_MMA_MULTIPLIERS,
-        SM90_CLUSTER_SIZES,
-        SM90_WGMMA_SHAPES_TF32_DENSE,
-        SM90_WGMMA_SHAPES_FP16_BF16_DENSE,
-        SM90_WGMMA_SHAPES_FP8_DENSE,
-        SM90_WGMMA_SHAPES_INT8_DENSE,
+      SM90_CLUSTER_SIZES,
+      SM90_MMA_MULTIPLIERS,
+      SM90_WGMMA_SHAPES_FP8_DENSE,
+      SM90_WGMMA_SHAPES_FP16_BF16_DENSE,
+      SM90_WGMMA_SHAPES_INT8_DENSE,
+      SM90_WGMMA_SHAPES_TF32_DENSE,
     )
 
 

@@ -50,6 +50,12 @@ try:
 except ImportError:
   from library import *
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 ###################################################################################################
