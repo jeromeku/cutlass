@@ -45,7 +45,7 @@ from itertools import chain, product
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
     datefmt='%H:%M:%S'
 )
@@ -11376,7 +11376,7 @@ if __name__ == "__main__":
 
     cutlass_lib_dir = os.path.dirname(__file__)
     output_file = os.path.join(args.build_dir, "trace.json")
-    logging.info(f"TRACER::DEBUG: {cutlass_lib_dir} {output_file}")
+    _LOGGER.info(f"TRACER::DEBUG: {cutlass_lib_dir} {output_file}")
 
     tracer = VizTracer(include_files=[cutlass_lib_dir], log_func_args=True, log_func_retval=True, ignore_frozen=True, ignore_c_function=True, output_file=output_file)
   else:
@@ -11387,7 +11387,7 @@ if __name__ == "__main__":
   VALID_OPS = set(OperationKindNames.values())
   USER_OPS = args.operations.split(',')
   assert all(op in VALID_OPS for op in USER_OPS)
-  logging.info(f"GENERATOR_DEBUG::VALID_OPS: {VALID_OPS}, USER_OPS: {USER_OPS}")
+  _LOGGER.info(f"GENERATOR_DEBUG::VALID_OPS: {VALID_OPS}, USER_OPS: {USER_OPS}")
   
   with tracer:
     manifest = Manifest(args)

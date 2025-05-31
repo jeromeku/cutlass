@@ -4,7 +4,7 @@ set -euo pipefail
 #DEBUG_GENERATOR: Namespace(operations='all', build_dir='/home/jeromeku/kernels/cfx-article-src/external/cutlass/profiler_test_build', curr_build_dir='/home/jeromeku/kernels/cfx-article-src/external/cutlass/profiler_test_build/tools/library', generator_target='library', architectures='90a', kernels='cutlass3x_sm90_tensorop_gemm_f16_f16_f32_f16_f16*_tn*', ignore_kernels='', exclude_kernels='', filter_by_cc='True', cuda_version='12.8.61', kernel_filter_file='', selected_kernel_list='/home/jeromeku/kernels/cfx-article-src/external/cutlass/profiler_test_build/tools/library/generated_kernels.txt', interface_dir=None, disable_full_archs_compilation=False, log_level=10, instantiation_level='0000', disable_cutlass_package_imports=True)
 SCRIPT="custom_generator.py"
 OPERATIONS='gemm'
-INSTANTIATION_LEVEL='0000'
+INSTANTIATION_LEVEL='max'
 ARCHITECTURES='90a'
 TYPES="f16_f16_f32_void_f16" # see cutlass/include/cutlass/epilogue/fusion/sm90_callbacks_tma_warpspecialized.hpp#L126-L127, void -> Element_Source (C operand) => no load in epilogue if void
 KERNELS="cutlass3x_sm90_tensorop_gemm_${TYPES}*"
@@ -48,3 +48,5 @@ CMD="PYTHONPATH=`pwd` ${CMD}"
 
 echo $CMD
 eval $CMD 2>&1 | tee ${BUILD_DIR}/gen.log
+NUM_KERNELS=`wc -l ${SELECTED_KERNEL_LIST} | cut -f1 -d' '`
+echo "Kernel list `realpath ${SELECTED_KERNEL_LIST}`: ${NUM_KERNELS}"
