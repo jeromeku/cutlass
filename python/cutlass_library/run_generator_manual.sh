@@ -6,6 +6,9 @@ set -euo pipefail
 OPERATIONS='gemm'
 BUILD_DIR='./generator_test'
 CURR_BUILD_DIR="${BUILD_DIR}/library"
+
+mkdir -p ${CURR_BUILD_DIR}
+
 GENERATOR_TARGET='library'
 ARCHITECTURES='90a'
 KERNELS='cutlass3x_sm90_tensorop_gemm_f16_f16_f32_f16_f16*_tn*'
@@ -13,9 +16,9 @@ KERNELS='cutlass3x_sm90_tensorop_gemm_f16_f16_f32_f16_f16*_tn*'
 FILTER_BY_CC='True'
 CUDA_VERSION='12.8.61'
 #kernel_filter_file='', 
-SELECTED_KERNEL_LIST='/home/jeromeku/kernels/cfx-article-src/external/cutlass/profiler_test_build/tools/library/generated_kernels.txt'
+SELECTED_KERNEL_LIST="${BUILD_DIR}/generated_kernels.txt"
 #, interface_dir=None, disable_full_archs_compilation=False, 
-LOG_LEVEL=10
+LOG_LEVEL=DEBUG
 INSTANTIATION_LEVEL='0000'
 
 CMD="python generator.py \
@@ -26,7 +29,7 @@ CMD="python generator.py \
     --build-dir=${BUILD_DIR} \
     --curr-build-dir=${CURR_BUILD_DIR} \
     --kernels=${KERNELS} \
-    --filter-by-cc \
+    --filter-by-cc=${FILTER_BY_CC} \
     --cuda-version=${CUDA_VERSION} \
     --selected-kernel-list=${SELECTED_KERNEL_LIST} \
     --log-level=${LOG_LEVEL} \
@@ -35,3 +38,4 @@ CMD="python generator.py \
 CMD="PYTHONPATH=`pwd` ${CMD}" 
 
 echo $CMD
+eval $CMD
