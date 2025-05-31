@@ -11340,7 +11340,7 @@ if __name__ == "__main__":
   #   GenerateSM100(manifest, args.cuda_version)
   #   GenerateSM120(manifest, args.cuda_version)
   
-
+  breakpoint()
   if 'library' in args.generator_target.split(','):
     manifest.emit(GeneratorTarget.Library)
 
