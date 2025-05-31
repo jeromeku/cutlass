@@ -6,7 +6,7 @@ SCRIPT="custom_generator.py"
 OPERATIONS='gemm'
 INSTANTIATION_LEVEL='0000'
 ARCHITECTURES='90a'
-TYPES="f16_f16_f32_void_f16"
+TYPES="f16_f16_f32_void_f16" # see cutlass/include/cutlass/epilogue/fusion/sm90_callbacks_tma_warpspecialized.hpp#L126-L127, void -> Element_Source (C operand) => no load in epilogue if void
 KERNELS="cutlass3x_sm90_tensorop_gemm_${TYPES}*"
 # KERNELS="${KERNELS},*_spgemm_*"
 BASE_DIR="generated"
