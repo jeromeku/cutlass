@@ -11240,7 +11240,6 @@ def check_kernel(kernel: str, kernel_names: list[str]):
 def GenerateSM90(manifest: Manifest, cuda_version):
   ops_enabled = [OperationKindNames.get(op) for op in manifest.operations_enabled]
   assert set(ops_enabled) == set(USER_OPS), f"{ops_enabled} != {USER_OPS}"
-  breakpoint()
   
   def _generate_ops(op: str, generator_fns, *args, kernel: str = None):
     should_generate = manifest.args.operations == "all" and manifest.kernels == "all"
@@ -11269,8 +11268,8 @@ def GenerateSM90(manifest: Manifest, cuda_version):
       GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version)
       GenerateSM90_TensorOp_16b_WGMMA_alignx_gemm(manifest, cuda_version)
       GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.GroupedUniversal3x)
-
-      breakpoint()
+      
+      # TODO: filter mixed types
       GenerateSM90_TensorOp_mixed_dtype_WGMMA_gemm(manifest, cuda_version)
 
       if not args.operations == "all":
