@@ -44,11 +44,6 @@ import sys
 from itertools import chain, product
 from typing import Any, Dict, Optional, Sequence, Tuple
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
-    datefmt='%H:%M:%S'
-)
 _LOGGER = logging.getLogger(__name__)
 
 def logging_prefix(indent_level: int = 0) -> str:
@@ -11228,86 +11223,39 @@ def GenerateSM90_Conv3x(manifest, cuda_version,
                          tile_schedulers = tile_schedulers,
                          conv_kind = conv_kind,
                          log_indent_level = log_indent_level)
-from manifest import Manifest
 
+def GenerateSM90(manifest, cuda_version):
+  GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_16b_WGMMA_alignx_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_tf32_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_tf32_WGMMA_alignx_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_int8_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_int8_WGMMA_alignx_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_fp8_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_fp8_WGMMA_alignx_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_mixed_dtype_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684(manifest, cuda_version)
+  GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.GroupedUniversal3x)
+  GenerateSM90_TensorOp_fp8_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.GroupedUniversal3x)
+  GenerateSM90_TensorOp_1684_complex(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_complex_gaussian(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_rank_k(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_rank_k_complex(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_rank_k_complex_gaussian(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_trmm(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_trmm_complex(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_trmm_complex_gaussian(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_symm(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_symm_complex(manifest, cuda_version)
+  GenerateSM90_TensorOp_1684_symm_complex_gaussian(manifest, cuda_version)
+  GenerateSM90_Conv3x(manifest, cuda_version)
+  GenerateSM90_SparseTensorOp_16b_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_SparseTensorOp_tf32_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_SparseTensorOp_int8_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_SparseTensorOp_fp8_WGMMA_gemm(manifest, cuda_version)
+  GenerateSM90_TensorOp_fp8_WGMMA_gemm_with_blockwise(manifest, cuda_version)
+  GenerateSM90_TensorOp_fp8_WGMMA_gemm_with_blockwise(manifest, cuda_version, gemm_kind=GemmKind.GroupedBlockwiseUniversal3x)
 
-def check_op(op: str, op_names: list[str]):
-  return any(op in name for name in op_names)
-
-def check_kernel(kernel: str, kernel_names: list[str]):
-  return any(kernel in name for name in kernel_names)
-
-def GenerateSM90(manifest: Manifest, cuda_version):
-  ops_enabled = [OperationKindNames.get(op) for op in manifest.operations_enabled]
-  assert set(ops_enabled) == set(USER_OPS), f"{ops_enabled} != {USER_OPS}"
-  breakpoint()
-  
-  def _generate_ops(op: str, generator_fns, *args, kernel: str = None):
-    should_generate = manifest.args.operations == "all" and manifest.kernels == "all"
-    
-    if should_generate:
-      assert len(manifest.operations_enabled) == 0 and len(manifest.kernel_names) == 0
-
-    if not should_generate:
-      should_generate = check_op(op, USER_OPS)
-      if kernel is not None:
-        should_generate &= check_kernel(kernel, manifest.kernel_names)
-      
-    if should_generate:
-      _LOGGER.info(f"Generating {op} ops...")
-      for fn in generator_fns:
-        fn(*args)
-    else:
-      msg = f"Skipping {op}"
-      if kernel is not None:
-        msg += f" / {kernel}"
-      _LOGGER.info(msg)
-
-
-  if "gemm" in args.operations or args.operations == "all":
-      # see GemmKindNames for mapping from gemm_kind to gemm op name
-      GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version)
-      GenerateSM90_TensorOp_16b_WGMMA_alignx_gemm(manifest, cuda_version)
-      GenerateSM90_TensorOp_16b_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.GroupedUniversal3x)
-
-      breakpoint()
-      GenerateSM90_TensorOp_mixed_dtype_WGMMA_gemm(manifest, cuda_version)
-
-      if not args.operations == "all":
-        if check_kernel("tf32", manifest.kernel_names):
-          GenerateSM90_TensorOp_tf32_WGMMA_gemm(manifest, cuda_version)
-          GenerateSM90_TensorOp_tf32_WGMMA_alignx_gemm(manifest, cuda_version)
-
-        if check_kernel("s8", manifest.kernel_names):
-          GenerateSM90_TensorOp_int8_WGMMA_gemm(manifest, cuda_version)
-          GenerateSM90_TensorOp_int8_WGMMA_alignx_gemm(manifest, cuda_version)
-
-        if check_kernel("fp8", manifest.kernel_names):
-          GenerateSM90_TensorOp_fp8_WGMMA_gemm(manifest, cuda_version)
-          GenerateSM90_TensorOp_fp8_WGMMA_alignx_gemm(manifest, cuda_version)
-          GenerateSM90_TensorOp_fp8_WGMMA_gemm(manifest, cuda_version, gemm_kind=GemmKind.GroupedUniversal3x)
-          GenerateSM90_TensorOp_fp8_WGMMA_gemm_with_blockwise(manifest, cuda_version)
-          GenerateSM90_TensorOp_fp8_WGMMA_gemm_with_blockwise(manifest, cuda_version, GemmKind.GroupedBlockwiseUniversal3x)
-
-        # These are fp64, 1684 refers to the instruction shape
-        if check_kernel("fp64", manifest.kernel_names):
-          GenerateSM90_TensorOp_1684(manifest, cuda_version)
-
-          if check_kernel("cfp64", manifest.kernel_names):
-            GenerateSM90_TensorOp_1684_complex(manifest, cuda_version)
-            GenerateSM90_TensorOp_1684_complex_gaussian(manifest, cuda_version)
-      
-        if check_kernel("spgemm", manifest.kernel_names):
-          sparse_ops = [GenerateSM90_SparseTensorOp_16b_WGMMA_gemm, GenerateSM90_SparseTensorOp_tf32_WGMMA_gemm, GenerateSM90_SparseTensorOp_int8_WGMMA_gemm, GenerateSM90_SparseTensorOp_fp8_WGMMA_gemm]
-          for op in sparse_ops:
-            op(manifest, cuda_version)
-
-  # Handle non-gemm ops
-  _generate_ops("symm", [GenerateSM90_TensorOp_1684_symm, GenerateSM90_TensorOp_1684_symm_complex, GenerateSM90_TensorOp_1684_symm_complex_gaussian], manifest, cuda_version)
-  _generate_ops("trmm", [GenerateSM90_TensorOp_1684_trmm, GenerateSM90_TensorOp_1684_trmm_complex, GenerateSM90_TensorOp_1684_trmm_complex_gaussian], manifest, cuda_version)
-  _generate_ops("conv", [GenerateSM90_Conv3x], manifest, cuda_version)
-  _generate_ops("rank_k", [GenerateSM90_TensorOp_1684_rank_k, GenerateSM90_TensorOp_1684_rank_k_complex, GenerateSM90_TensorOp_1684_rank_k_complex_gaussian], manifest, cuda_version)
-  
 ###################################################################################################
 
 def numeric_log_level(log_level: str) -> int:
@@ -11358,8 +11306,6 @@ def define_parser():
   parser.add_argument("--log-level", default='info', type=numeric_log_level, required=False,
                       help='Logging level to be used by the generator script')
   parser.add_argument('--instantiation-level', type=str, default="", required=False, help="Instantiation level for SM90 kernels. Set to `max` and make sure `--kernels` is not empty to generate all possible configurations.")
-
-  parser.add_argument("--trace", action="store_true")
   _add_package_disablement_flag(parser)
   return parser
 
@@ -11367,61 +11313,42 @@ def define_parser():
 if __name__ == "__main__":
   parser = define_parser()
   args = parser.parse_args()
-  print(f"DEBUG_GENERATOR: {args}")
-  
+
   # Set the logging level based on the user-provided `--log-level` command-line option
   logging.basicConfig(level=args.log_level)
+
+  manifest = Manifest(args)
+
+  archs = args.architectures.split(';')
+
+  GenerateSM50(manifest, args.cuda_version)
+  GenerateSM60(manifest, args.cuda_version)
+  GenerateSM61(manifest, args.cuda_version)
+  GenerateSM70(manifest, args.cuda_version)
+  GenerateSM75(manifest, args.cuda_version)
+  GenerateSM80(manifest, args.cuda_version)
+  GenerateSM89(manifest, args.cuda_version)
+  GenerateSM90(manifest, args.cuda_version)
+   
+  blackwell_enabled_arch = any(arch in ["100a", "100f", "101a", "101f", "120a", "120f"] for arch in archs)
+  if blackwell_enabled_arch:
+    GenerateSM100(manifest, args.cuda_version)
+    GenerateSM120(manifest, args.cuda_version)
   
-  if args.trace:  
-    from viztracer import VizTracer
 
-    cutlass_lib_dir = os.path.dirname(__file__)
-    output_file = os.path.join(args.build_dir, "trace.json")
-    logging.info(f"TRACER::DEBUG: {cutlass_lib_dir} {output_file}")
+  if 'library' in args.generator_target.split(','):
+    manifest.emit(GeneratorTarget.Library)
 
-    tracer = VizTracer(include_files=[cutlass_lib_dir], log_func_args=True, log_func_retval=True, ignore_frozen=True, ignore_c_function=True, output_file=output_file)
-  else:
-    from contextlib import nullcontext
-    tracer = nullcontext()
+  if 'kernel_testlist_l0' in args.generator_target.split(','):
+    emit_gemm_kernel_testlist(manifest, args.curr_build_dir, args.architectures, "functional_L0")
 
-  from library import OperationKindNames
-  VALID_OPS = set(OperationKindNames.values())
-  USER_OPS = args.operations.split(',')
-  assert all(op in VALID_OPS for op in USER_OPS)
-  logging.info(f"GENERATOR_DEBUG::VALID_OPS: {VALID_OPS}, USER_OPS: {USER_OPS}")
+  if 'kernel_testlist_l1' in args.generator_target.split(','):
+    emit_gemm_kernel_testlist(manifest, args.curr_build_dir, args.architectures, "functional_L1")
   
-  with tracer:
-    manifest = Manifest(args)
-
-    archs = args.architectures.split(';')
-    # GenerateSM50(manifest, args.cuda_version)
-    # GenerateSM60(manifest, args.cuda_version)
-    # GenerateSM61(manifest, args.cuda_version)
-    # GenerateSM70(manifest, args.cuda_version)
-    # GenerateSM75(manifest, args.cuda_version)
-    # GenerateSM80(manifest, args.cuda_version)
-    # GenerateSM89(manifest, args.cuda_version)
-    GenerateSM90(manifest, args.cuda_version)
-    
-    # blackwell_enabled_arch = any(arch in ["100a", "100f", "101a", "101f", "120a", "120f"] for arch in archs)
-    # if blackwell_enabled_arch:
-    #   GenerateSM100(manifest, args.cuda_version)
-    #   GenerateSM120(manifest, args.cuda_version)
-    
-
-    if 'library' in args.generator_target.split(','):
-      manifest.emit(GeneratorTarget.Library)
-
-    if 'kernel_testlist_l0' in args.generator_target.split(','):
-      emit_gemm_kernel_testlist(manifest, args.curr_build_dir, args.architectures, "functional_L0")
-
-    if 'kernel_testlist_l1' in args.generator_target.split(','):
-      emit_gemm_kernel_testlist(manifest, args.curr_build_dir, args.architectures, "functional_L1")
-    
-    if args.selected_kernel_list is not None:
-      if len(manifest.selected_kernels) > 0:
-        with open(args.selected_kernel_list, 'w') as file_writer:
-          for line in manifest.selected_kernels:
-            file_writer.write("%s\n" % line)
+  if args.selected_kernel_list is not None:
+    if len(manifest.selected_kernels) > 0:
+      with open(args.selected_kernel_list, 'w') as file_writer:
+        for line in manifest.selected_kernels:
+          file_writer.write("%s\n" % line)
 
 ###################################################################################################
