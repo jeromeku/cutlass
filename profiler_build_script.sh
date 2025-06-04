@@ -6,7 +6,7 @@ set -euo pipefail
 
 CUTLASS_LIBRARY_OPERATIONS=gemm
 LIBRARY_INSTANTIATION_LEVEL=max
-BUILD_TYPE="profiler_${LIBRARY_INSTANTIATION_LEVEL}_default"
+BUILD_TYPE="${LIBRARY_INSTANTIATION_LEVEL}_default"
 BUILD_DIR="build_profiler_${BUILD_TYPE}"
 
  #3310 instruction shape [0-3], mma multiplier [0-3,9], cluster shape [0-5], schedule {0,1}; "max" == 9992, see manifest.py init
