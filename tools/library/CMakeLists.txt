@@ -279,7 +279,8 @@ file(GLOB_RECURSE GENERATOR_PYTHON_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOU
 # auto-instantiation of CUTLASS kernels
 #
 
-# set cutlass generator compiler version to filter kernels in the generator not supported by a specific toolkit. 
+# set cutlass generator compiler version to filter kernels in the generator not supported by a specific toolkit.
+set(CUTLASS_GENERATOR_SCRIPT "generator.py" CACHE STRING "Description of my custom flag") 
 set(CUTLASS_GENERATOR_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION})
 set(CUTLASS_LIBRARY_GENERATED_KERNEL_LIST_FILE ${CMAKE_CURRENT_BINARY_DIR}/generated_kernels.txt CACHE STRING "Generated kernel listing file")
 
@@ -298,6 +299,7 @@ message(STATUS "DEBUG_GENERATOR: Generator script path = ${CUTLASS_SOURCE_DIR}/p
 message(STATUS "DEBUG_GENERATOR: Build directory = ${PROJECT_BINARY_DIR}")
 message(STATUS "DEBUG_GENERATOR: Current build directory = ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "DEBUG_GENERATOR: Generated kernel list file = ${CUTLASS_LIBRARY_GENERATED_KERNEL_LIST_FILE}")
+message(STATUS "DEBUG_GENERATOR: Using generator script = ${CUTLASS_GENERATOR_SCRIPT}")
 
 # --log-level is set to DEBUG to enable printing information about which kernels were excluded
 # from generation in /python/cutlass_library/manifest.py. To avoid having this information appear
@@ -305,7 +307,7 @@ message(STATUS "DEBUG_GENERATOR: Generated kernel list file = ${CUTLASS_LIBRARY_
 execute_process(
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../python/cutlass_library
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CUTLASS_LIBRARY_PACKAGE_DIR}
-    ${Python3_EXECUTABLE} ${CUTLASS_SOURCE_DIR}/python/cutlass_library/generator.py
+    ${Python3_EXECUTABLE} ${CUTLASS_SOURCE_DIR}/python/cutlass_library/${CUTLASS_GENERATOR_SCRIPT}
     --operations "${CUTLASS_LIBRARY_OPERATIONS}" 
     --build-dir ${PROJECT_BINARY_DIR}
     --curr-build-dir ${CMAKE_CURRENT_BINARY_DIR}

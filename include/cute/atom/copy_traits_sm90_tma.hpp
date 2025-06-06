@@ -954,6 +954,20 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
   for_each(make_seq<tma_dim>{}, [&](auto i) {
     smem_box_shape[i] *= size<i>(tma_gbasis);
   });
+
+  #if defined(PRINT_TMA_DESCRIPTOR)
+  printf("Before tma truncate:\n");
+  printf("smem box shape: ");
+  for(int i=0; i < smem_box_shape.size(); i++){
+    printf("%u ", smem_box_shape[i]);
+  }
+  printf("\n");
+  printf("smem box stride: ");
+  for(int i=0; i < smem_box_shape.size(); i++){
+    printf("%u ", smem_box_shape[i]);
+  }
+  printf("\n");
+  #endif
   // Finally, truncate the tma box by the num_multicast
   for (uint32_t i = tma_dim-1, multicast = num_multicast; multicast > 1; --i) {
     assert(smem_box_shape[i] % multicast == 0 || multicast % smem_box_shape[i] == 0);
@@ -961,7 +975,20 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
     smem_box_shape[i] = ceil_div(smem_box_shape[i], multicast);
     multicast = new_mult;
   }
-
+  #if defined(PRINT_TMA_DESCRIPTOR)
+  printf("After tma truncate:\n");
+  printf("smem box shape: ");
+  for(int i=0; i < smem_box_shape.size(); i++){
+    printf("%u ", smem_box_shape[i]);
+  }
+  printf("\n");
+  printf("smem box stride: ");
+  for(int i=0; i < smem_box_shape.size(); i++){
+    printf("%u ", smem_box_shape[i]);
+  }
+  printf("\n");
+  #endif
+  
   assert(smem_box_shape[0] >= (uint32_t(1)));                // Size must be min 1
   assert(smem_box_shape[0] <= (uint32_t(1) << 8));           // Size must be max 2^8 = 256
   assert(smem_box_shape[1] >= (uint32_t(1)));                // Size must be min 1
@@ -1018,6 +1045,24 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
         smem_swizzle,
         tma_l2Promotion,
         tma_oobFill);
+
+    #if defined(PRINT_TMA_DESCRIPTOR)
+          std::cout << "TMA Desc Addr:   " << &tma_desc
+                << "\nformat         " << tma_format
+                << "\ndim            " << tma_dim
+                << "\ngmem_address   " << gmem_address
+                << "\nglobalDim      " << gmem_prob_shape
+                << "\nglobalStrides  " << gmem_prob_stride
+                << "\nboxDim         " << smem_box_shape
+                << "\nelementStrides " << smem_box_stride
+                << "\ninterleave     " << tma_interleave
+                << "\nswizzle        " << smem_swizzle
+                << "\nl2Promotion    " << tma_l2Promotion
+                << "\noobFill        " << tma_oobFill << std::endl;
+    printf("Stride truncated:\n");
+    cute::print_range(gmem_prob_stride.begin() + 1, gmem_prob_stride.end());
+    printf("\n");
+    #endif
 
     if (result != CUDA_SUCCESS) {
       std::cerr << "TMA Desc Addr:   " << &tma_desc

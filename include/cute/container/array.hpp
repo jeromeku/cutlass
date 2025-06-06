@@ -37,6 +37,12 @@
 
 namespace cute
 {
+  template <typename Iterator>
+  void print_range(Iterator begin, Iterator end) {
+    for (auto it = begin; it != end; ++it) {
+        std::cout << *it << " ";
+    }
+}
 
 template <class T, size_t N>
 struct array

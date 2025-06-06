@@ -652,6 +652,26 @@ struct SM90_TMA_LOAD_MULTICAST_1D
   }
 };
 
+#if defined(DEBUG_TMA)
+__device__ int block_sync = 0;
+
+template <typename... Coords>
+__device__ void print_tma_coords(Coords... coords) {
+    while (atomicAdd(&block_sync, 0) != blockIdx.x) {
+        // spin-wait
+    }
+
+    if (threadIdx.x == 0) {
+        printf("block id: %d, cluster id: %d, coords: ", blockIdx.x, cute::block_rank_in_cluster());
+        ((printf("%d ", coords)), ...);  // Fold expression to unpack and print all coords
+        printf("\n");
+    }
+
+    if (threadIdx.x == 0) {
+        atomicAdd(&block_sync, 1);
+    }
+}
+#endif
 struct SM90_TMA_LOAD_MULTICAST_2D
 {
   CUTE_HOST_DEVICE static void
@@ -667,6 +687,22 @@ struct SM90_TMA_LOAD_MULTICAST_2D
     uint32_t smem_int_mbar = cast_smem_ptr_to_uint(mbar_ptr);
     uint32_t smem_int_ptr  = cast_smem_ptr_to_uint(smem_ptr);
     cutlass::arch::synclog_emit_tma_load(__LINE__, gmem_int_desc, smem_int_mbar, smem_int_ptr);
+    
+    #if defined(DEBUG_TMA)
+  
+    while (atomicAdd(&block_sync, 0) != blockIdx.x) {
+        // spin-wait
+    }
+    if(threadIdx.x == 0){
+      printf("blockid, gmem_int_desc, smem int ptr, crd0, crd1: %d, %lu, %u, %d, %d\n", blockIdx.x, gmem_int_desc, smem_int_ptr, crd0, crd1);
+    }
+    if (threadIdx.x == 0) {
+        atomicAdd(&block_sync, 1);
+    }
+
+
+    #endif
+
     asm volatile (
       "cp.async.bulk.tensor.2d.shared::cluster.global.mbarrier::complete_tx::bytes.multicast::cluster.L2::cache_hint"
       " [%0], [%1, {%4, %5}], [%2], %3, %6;"
@@ -696,6 +732,21 @@ struct SM90_TMA_LOAD_MULTICAST_3D
     uint32_t smem_int_mbar = cast_smem_ptr_to_uint(mbar_ptr);
     uint32_t smem_int_ptr  = cast_smem_ptr_to_uint(smem_ptr);
     cutlass::arch::synclog_emit_tma_load(__LINE__, gmem_int_desc, smem_int_mbar, smem_int_ptr);
+    #if defined(DEBUG_TMA)
+  
+    while (atomicAdd(&block_sync, 0) != blockIdx.x) {
+        // spin-wait
+    }
+    if(threadIdx.x == 0){
+      printf("%s:%d gridDim.x, gridDim.y, blockId.x, blockId.y, gmem_int_desc, smem int ptr, crd0, crd1, crd2: %d, %d, %d, %d, %lu, %u, (%d, %d, %d)\n", __FILE__, __LINE__, gridDim.x, gridDim.y, blockIdx.x, blockIdx.y, gmem_int_desc, smem_int_ptr, crd0, crd1, crd2);
+    }
+    if (threadIdx.x == 0 && blockIdx.x==0 && blockIdx.y == 0) {
+        atomicAdd(&block_sync, 1);
+    }
+
+
+    #endif
+
     asm volatile (
       "cp.async.bulk.tensor.3d.shared::cluster.global.mbarrier::complete_tx::bytes.multicast::cluster.L2::cache_hint"
       " [%0], [%1, {%4, %5, %6}], [%2], %3, %7;"
