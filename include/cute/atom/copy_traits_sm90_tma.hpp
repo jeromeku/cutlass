@@ -1019,6 +1019,21 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
         tma_l2Promotion,
         tma_oobFill);
 
+    #if defined(PRINT_TMA_DESCRIPTOR)
+          std::cerr << "TMA Desc Addr:   " << &tma_desc
+                << "\nformat         " << tma_format
+                << "\ndim            " << tma_dim
+                << "\ngmem_address   " << gmem_address
+                << "\nglobalDim      " << gmem_prob_shape
+                << "\nglobalStrides  " << gmem_prob_stride
+                << "\nboxDim         " << smem_box_shape
+                << "\nelementStrides " << smem_box_stride
+                << "\ninterleave     " << tma_interleave
+                << "\nswizzle        " << smem_swizzle
+                << "\nl2Promotion    " << tma_l2Promotion
+                << "\noobFill        " << tma_oobFill << std::endl;
+    #endif
+    
     if (result != CUDA_SUCCESS) {
       std::cerr << "TMA Desc Addr:   " << &tma_desc
                 << "\nformat         " << tma_format
@@ -1032,8 +1047,9 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
                 << "\nswizzle        " << smem_swizzle
                 << "\nl2Promotion    " << tma_l2Promotion
                 << "\noobFill        " << tma_oobFill << std::endl;
+      if (result != CUDA_SUCCESS){
       std::cerr << "Error: Failed to initialize the TMA descriptor " << result << std::endl;
-      assert(false);
+      assert(false);}
     }
 
   #endif // (__CUDACC_VER_MAJOR__ >= 12) && !defined(__CUDACC_RTC__)
@@ -1069,7 +1085,7 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
     }
   });
 
-#if 0
+#if 1
     print("gmem_tma_basis_stride : "); print(gmem_tma_basis_stride); print("\n");
 #endif
 
@@ -1120,7 +1136,7 @@ make_tma_copy_atom(CopyOp,
 
   Traits tma_traits{tma_desc, aux_params};
 
-#if 0
+#if 1
   print("num_bits_per_tma :  "); print(num_bits_per_tma); print("\n");
   print("g_stride_bases   :  "); print(tma_traits.aux_params_.g_stride_); print("\n");
 #endif

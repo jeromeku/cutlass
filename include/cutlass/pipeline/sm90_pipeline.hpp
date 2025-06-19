@@ -447,6 +447,10 @@ public:
   void producer_tail(PipelineState state) {
     detail::pipeline_check_is_producer(params_.role);
     for (int count = 0; count < Stages; ++count) {
+      #if defined(DEBUG_PIPELINE)
+      if(blockIdx.x == 0 && blockIdx.y == 0)
+        printf("DEBUG::%s:%d::producer_tail::blockIdx.x,blockIdx.y,tidx:(%d,%d,%d) smem_pip_write:index,phase:(%d,%d)\n", __FILE__, __LINE__, blockIdx.x, blockIdx.y, threadIdx.x, state.index(), state.phase());
+      #endif
       empty_barrier_ptr_[state.index()].wait(state.phase());
       ++state;
     }

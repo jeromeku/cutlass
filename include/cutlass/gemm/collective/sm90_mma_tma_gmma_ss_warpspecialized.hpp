@@ -371,8 +371,14 @@ struct CollectiveMma<
       CUTLASS_PRAGMA_NO_UNROLL
       for ( ; k_tile_count > 0; --k_tile_count) {
         // LOCK smem_pipe_write for _writing_
-        pipeline.producer_acquire(smem_pipe_write);
+  
+        #if defined(DEBUG_PIPELINE)
+        if(block_rank_in_cluster == 0 && blockIdx.x == 0)
+          printf("DEBUG::%s:%d::load PIPE_FILL::block_rank,bIdx,bIdy,tidx:(%d,%d,%d,%d) k_tile_count,index,phase,count,stages:%d %d %d %d %d\n", __FILE__, __LINE__, block_rank_in_cluster, blockIdx.x, blockIdx.y, threadIdx.x, k_tile_count, smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_, PipelineState::Stages);
+        #endif
 
+        pipeline.producer_acquire(smem_pipe_write);
+  
         //
         // Copy gmem to smem for *k_tile_iter
         //
@@ -388,6 +394,10 @@ struct CollectiveMma<
         // Advance smem_pipe_write
         ++smem_pipe_write;
       }
+      #if defined(DEBUG_PIPELINE)
+      if(block_rank_in_cluster == 0 && blockIdx.x == 0)
+        printf("DEBUG::%s:%d::load AFTER_PIPE_FILL::block_rank,bIdx,bIdy,tidx:(%d,%d,%d,%d) k_tile_count,index,phase,count,stages:%d %d %d %d %d\n", __FILE__, __LINE__, block_rank_in_cluster, blockIdx.x, blockIdx.y, threadIdx.x, k_tile_count, smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_, PipelineState::Stages);
+      #endif
     }
   }
 
@@ -404,6 +414,10 @@ struct CollectiveMma<
        * then would just be acquired since the phase was
        * still inverted from make_producer_start_state
        */
+      #if defined(DEBUG_PIPELINE)
+      if(blockIdx.x == 0 && blockIdx.y == 0)
+        printf("DEBUG::%s:%d::load_tail::blockIdx.x,blockIdx.y,tidx:(%d,%d,%d) smem_pip_write: %d %d %d %d\n", __FILE__, __LINE__, blockIdx.x,blockIdx.y,threadIdx.x, smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_, PipelineState::Stages);
+      #endif
       pipeline.producer_tail(smem_pipe_write);
     }
   }
