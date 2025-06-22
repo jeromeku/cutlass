@@ -61,14 +61,102 @@ add.u32 $0, $0, $0;
         asm_dialect=llvm.AsmDialect.AD_ATT,
     ))
 
+"""
+    asm volatile(
+        "{\n\t"
+        "  .reg .u64 start, target, now;\n\t"
+        "  .reg .pred cond;\n\t"
+        "  mov.u64 start, %%clock64;\n\t"
+        "  add.u64 target, start, %0;\n\t"
+        "Loop:\n\t"
+        "  mov.u64  now, %%clock64;\n\t"
+        "  setp.lt.u64 cond, now, target;\n\t"
+        "  @cond bra Loop;\n\t"
+        "}"
+        :
+        : "l"(CYCLES * delay)
+        : "memory");
+
+"""
+
+@dsl_user_op
+def _spin_kernel(loc=None, ip=None):
+
+    ptx = 'mov.u32 $0, %clock;'
+    start = llvm.inline_asm(
+        T.i32(),
+        [],
+        ptx,
+        "=r",
+        has_side_effects=False,
+        is_align_stack=False,
+        asm_dialect=llvm.AsmDialect.AD_ATT,
+    )
+    out = cutlass.Int32(start)
+    cute.printf("Start time: {}", out)
+
+
+@dsl_user_op
+def global_timer_kernel(loc=None, ip=None):
+
+    ptx = 'mov.u32 $0, %globaltimer_lo;'
+    start = llvm.inline_asm(
+        T.i32(),
+        [],
+        ptx,
+        "=r",
+        has_side_effects=False,
+        is_align_stack=False,
+        asm_dialect=llvm.AsmDialect.AD_ATT,
+    )
+    out = cutlass.Int32(start)
+    cute.printf("Start time: {}", out)
+
+NUM_CYCLES = cute.Uint32(1_000_000)
+
+@dsl_user_op
+def spin_kernel(loc=None, ip=None):
+    delay = cute.Uint32(1_000_000)
+    ptx = """
+    .reg .u32 start, target, now;
+    .reg .pred cond;
+    mov.u32 start, %globaltimer_lo;
+    add.u32 $0, start, $1;
+"""
+    stop_time = llvm.inline_asm(
+        T.i32(),
+        [delay.ir_value(loc=loc, ip=ip)],
+        ptx,
+        "=r,r",
+        has_side_effects=False,
+        is_align_stack=False,
+        asm_dialect=llvm.AsmDialect.AD_ATT,
+    )
+    stop = cutlass.Int32(stop_time)
+    cute.printf("Stop time: {}", stop)
+    # out = cutlass.Int32(start)
+    # cute.printf("Start time: {}", out)
+
 @cute.kernel
-def inline_asm_kernel():
+def inline_add_kernel():
     cute.printf("Hello")
     out = add_op(cute.Int32(1), cute.Int32(2))
     cute.printf("Add op: {}", out)
+
+@cute.kernel
+def inline_spin_kernel():
+    cute.printf("Spin kernel")
+    spin_kernel()
+
+
+@cute.kernel
+def inline_global_timer():
+    cute.printf("Global Timer")
+    global_timer_kernel()
+
 @cute.jit
 def launcher():
-    kernel = inline_asm_kernel()
+    kernel = inline_spin_kernel()
     kernel.launch(grid=(1,1,1), block=(1,1,1))
 
 if __name__ == "__main__":
