@@ -112,16 +112,32 @@ def global_timer_kernel(loc=None, ip=None):
     out = cutlass.Int32(start)
     cute.printf("Start time: {}", out)
 
-NUM_CYCLES = cute.Uint32(1_000_000)
+NUM_CYCLES = 1_000_000
+
+        # "Loop:\n\t"
+        # "  mov.u64  now, %%clock64;\n\t"
+        # "  setp.lt.u64 cond, now, target;\n\t"
+        # "  @cond bra Loop;\n\t"
+
+@cute.jit
+def block_idx():
+    bidx, bidy, _ = cute.arch.block_idx()
+    return bidx + bidy 
 
 @dsl_user_op
-def spin_kernel(loc=None, ip=None):
-    delay = cute.Uint32(1_000_000)
+def spin_kernel(delay: int | cute.Uint32, loc=None, ip=None):
+    delay = cute.Uint32(delay)
+    
     ptx = """
     .reg .u32 start, target, now;
     .reg .pred cond;
     mov.u32 start, %globaltimer_lo;
-    add.u32 $0, start, $1;
+    add.u32 target, start, $0;
+    Loop:
+        mov.u32 now, %globaltimer_lo;
+        setp.lt.u32 cond, now, target;
+        @cond bra Loop;
+    mov.u32 $1, now;
 """
     stop_time = llvm.inline_asm(
         T.i32(),
@@ -133,7 +149,8 @@ def spin_kernel(loc=None, ip=None):
         asm_dialect=llvm.AsmDialect.AD_ATT,
     )
     stop = cutlass.Int32(stop_time)
-    cute.printf("Stop time: {}", stop)
+    return stop
+    # cute.printf("Stop time: {}", stop)
     # out = cutlass.Int32(start)
     # cute.printf("Start time: {}", out)
 
@@ -145,8 +162,13 @@ def inline_add_kernel():
 
 @cute.kernel
 def inline_spin_kernel():
-    cute.printf("Spin kernel")
-    spin_kernel()
+    # cute.printf("Spin kernel")
+
+    bidx, _, _ = cute.arch.block_idx()
+    delay = cute.Uint32(bidx * 1_000_000)
+    stop = spin_kernel(delay)
+    
+    cute.printf("bidx: {}, delay: {}, stop: {}", bidx, delay, stop)
 
 
 @cute.kernel
@@ -157,7 +179,7 @@ def inline_global_timer():
 @cute.jit
 def launcher():
     kernel = inline_spin_kernel()
-    kernel.launch(grid=(1,1,1), block=(1,1,1))
+    kernel.launch(grid=(10,1,1), block=(1,1,1))
 
 if __name__ == "__main__":
     a = torch.empty(1, device="cuda", dtype=torch.uint8)
