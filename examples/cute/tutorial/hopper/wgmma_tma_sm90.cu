@@ -387,7 +387,7 @@ gemm_tn(int m, int n, int k,
   // Create TMA Atoms with the desired copy operation on the source and destination
   Copy_Atom tmaA = make_tma_atom(SM90_TMA_LOAD{}, mA, sA(_,_,0), make_shape(bM,bK));
   Copy_Atom tmaB = make_tma_atom(SM90_TMA_LOAD{}, mB, sB(_,_,0), make_shape(bN,bK));
-
+make_tma_
   //
   // Setup and Launch
   //
