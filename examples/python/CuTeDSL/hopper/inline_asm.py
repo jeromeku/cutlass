@@ -45,13 +45,13 @@ def log2f(a: float | Float32, *, loc=None, ip=None) -> Float32:
 
 
 @dsl_user_op
-def add_op(loc=None, ip=None):
+def add_op(a: cutlass.Numeric, b: cutlass.Numeric, loc=None, ip=None):
 
     return cutlass.Int32(llvm.inline_asm(
         T.i32(),
-        [],
-        "add.u32 $0, 1, 2;",
-        "=r",
+        [a.ir_value(loc=loc,ip=ip),b.ir_value(loc=loc,ip=ip)],
+        "add.u32 $0, $1, $2;",
+        "=r,r,r",
         has_side_effects=False,
         is_align_stack=False,
         asm_dialect=llvm.AsmDialect.AD_ATT,
@@ -60,7 +60,7 @@ def add_op(loc=None, ip=None):
 @cute.kernel
 def inline_asm_kernel():
     cute.printf("Hello")
-    out = add_op()
+    out = add_op(cute.Int32(1), cute.Int32(2))
     cute.printf("Add op: {}", out)
 @cute.jit
 def launcher():
