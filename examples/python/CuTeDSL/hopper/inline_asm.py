@@ -47,10 +47,14 @@ def log2f(a: float | Float32, *, loc=None, ip=None) -> Float32:
 @dsl_user_op
 def add_op(a: cutlass.Numeric, b: cutlass.Numeric, loc=None, ip=None):
 
+    ptx = """
+add.u32 $0, $1, $2;
+add.u32 $0, $0, $0;
+"""
     return cutlass.Int32(llvm.inline_asm(
         T.i32(),
         [a.ir_value(loc=loc,ip=ip),b.ir_value(loc=loc,ip=ip)],
-        "add.u32 $0, $1, $2;",
+        ptx,
         "=r,r,r",
         has_side_effects=False,
         is_align_stack=False,
