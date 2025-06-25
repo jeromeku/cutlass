@@ -137,11 +137,19 @@ struct PersistentTileSchedulerSm90Params {
   ) {
 
     CUTLASS_UNUSED(hw_info);
-
+    
     // Round up to nearest multiple of swizzle_size along each mode
     auto log_swizzle_size = get_log_swizzle_size(problem_blocks.x, problem_blocks.y, max_swizzle_size);
     auto problem_blocks_m = round_up(problem_blocks.x, (1 << log_swizzle_size) * cluster_shape.m());
     auto problem_blocks_n = round_up(problem_blocks.y, (1 << log_swizzle_size) * cluster_shape.n());
+    
+    #if defined(DEBUG_SCHEDULER)
+    printf("%s:%d::DEBUG_SCHEDULER_PARAMS: log_swizzle_size: %d\n", __FILE__, __LINE__, log_swizzle_size);
+    #endif
+    
+    #if defined(DEBUG_SCHEDULER)
+    printf("%s:%d::DEBUG_SCHEDULER_PARAMS: problem_blocks after round up: (%d, %d) -> (%d, %d)\n", __FILE__, __LINE__, problem_blocks.x, problem_blocks.y, problem_blocks_m, problem_blocks_n);
+    #endif
 
     problem_tiles_m_ = problem_blocks_m / cluster_shape.m();
     problem_tiles_n_ = problem_blocks_n / cluster_shape.n();
@@ -154,6 +162,10 @@ struct PersistentTileSchedulerSm90Params {
       problem_blocks_n,
       raster_order_option
     );
+    
+    #if defined(DEBUG_SCHEDULER)
+    printf("%s:%d::DEBUG_SCHEDULER_PARAMS: raster_order: %d\n", __FILE__, __LINE__, raster_order);
+    #endif
 
     //
     // Set members
@@ -174,6 +186,11 @@ struct PersistentTileSchedulerSm90Params {
       divmod_cluster_shape_minor_ = FastDivmodU64Pow2(cluster_shape.n());
       divmod_cluster_blk_major_ = FastDivmodU64(problem_blocks_m / cluster_shape.m());
     }
+  
+    // #if defined(DEBUG_SCHEDULER)
+    // printf("%s:%d::DEBUG_SCHEDULER_PARAMS: divmod_batch_, divmod_cluster_shapes: %d, (%d, %d, %d)\n", __FILE__, __LINE__, divmod_batch_.divisor, divmod_cluster_shape_major_.divisor, divmod_cluster_shape_minor_.divisor, divmod_cluster_blk_major_.divisor);
+    // #endif
+
   }
 
   // Given the inputs, computes the physical grid we should launch.
@@ -360,6 +377,9 @@ struct PersistentTileSchedulerSm90Params {
   get_tiled_cta_shape_mnl(BatchedGemmCoord problem_shape, GemmCoord cta_shape, GemmCoord cluster_shape) {
     auto cta_m = (problem_shape.m() + cta_shape.m() - 1) / cta_shape.m();
     auto cta_n = (problem_shape.n() + cta_shape.n() - 1) / cta_shape.n();
+    #if defined(DEBUG_SCHEDULER)
+    printf("%s:%d::DEBUG_SCHEDULER_PARAMS: cta_{m,n}: (%d, %d)\n", __FILE__, __LINE__, cta_m, cta_n);
+    #endif
 
     return get_tiled_cta_shape_mnl(problem_shape, cluster_shape, cta_m, cta_n);
   }
@@ -374,6 +394,10 @@ struct PersistentTileSchedulerSm90Params {
     // Round up to nearest multiple of cluster dim along each mode
     auto problem_blocks_m = ((cta_m + cluster_shape.m() - 1) / cluster_shape.m()) * cluster_shape.m();
     auto problem_blocks_n = ((cta_n + cluster_shape.n() - 1) / cluster_shape.n()) * cluster_shape.n();
+
+    #if defined(DEBUG_SCHEDULER)
+    printf("%s:%d::DEBUG_SCHEDULER_PARAMS: problem_blocks_{m,n} size: (%d, %d)\n", __FILE__, __LINE__, problem_blocks_m, problem_blocks_n);
+    #endif
 
     return {
       static_cast<uint32_t>(problem_blocks_m),
@@ -1662,7 +1686,6 @@ struct PersistentTileSchedulerSm90GroupParams {
     auto log_swizzle_size = get_log_swizzle_size(problem_blocks.x, problem_blocks.y, max_swizzle_size);
     auto problem_blocks_m = round_up(problem_blocks.x, (1 << log_swizzle_size) * cluster_shape.m());
     auto problem_blocks_n = round_up(problem_blocks.y, (1 << log_swizzle_size) * cluster_shape.n());
-
     RasterOrder raster_order = get_rasterization_order(
       problem_blocks_m,
       problem_blocks_n,

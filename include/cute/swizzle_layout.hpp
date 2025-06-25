@@ -407,6 +407,11 @@ upcast(Swizzle<B,M,S> const& swizzle)
   static_assert(has_single_bit(N), "N must be a power of two");
   constexpr int log2_n = bit_width(uint32_t(N)) - 1;
   constexpr int NewM   = M - log2_n;
+  
+  #if defined(DEBUG_UPCAST)
+  printf("%s:%d::upcast: N,B,M,S: %d, %d, %d, %d, log2_n: %d, NewM: %d\n", __FILE__,__LINE__,N, B, M, S, log2_n, NewM);
+  #endif
+  
   if constexpr (NewM >= 0) {
     return Swizzle<B,NewM,S>{};
   } else {

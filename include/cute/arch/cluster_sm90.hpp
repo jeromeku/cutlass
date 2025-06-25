@@ -98,6 +98,7 @@ CUTE_DEVICE dim3 cluster_grid_dims()
   CUTE_INVALID_CONTROL_PATH("cluster_grid_dims() can only be called on device");
   return {0, 0, 0};
 #else
+if(thread0()) printf("ARCH NOT ENABLED!");
   return {0, 0, 0};
 #endif
 }

@@ -954,6 +954,11 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
   for_each(make_seq<tma_dim>{}, [&](auto i) {
     smem_box_shape[i] *= size<i>(tma_gbasis);
   });
+  
+  #if defined(DEBUG_TMA_DESCRIPTOR)
+  printf("DEBUG::%s:%d BEFORE_MULTICAST gmem_prob_shape, smem_box_shape: ", __FILE__, __LINE__); print(gmem_prob_shape); printf(" "); print(smem_box_shape); printf("\n");
+  #endif
+
   // Finally, truncate the tma box by the num_multicast
   for (uint32_t i = tma_dim-1, multicast = num_multicast; multicast > 1; --i) {
     assert(smem_box_shape[i] % multicast == 0 || multicast % smem_box_shape[i] == 0);
@@ -961,6 +966,11 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
     smem_box_shape[i] = ceil_div(smem_box_shape[i], multicast);
     multicast = new_mult;
   }
+
+  #if defined(DEBUG_TMA_DESCRIPTOR)
+  printf("DEBUG::%s:%d AFTER_MULTICAST gmem_prob_shape, smem_box_shape multicast: ", __FILE__, __LINE__); print(gmem_prob_shape); printf(" "); print(smem_box_shape); printf("\n");
+  #endif
+
 
   assert(smem_box_shape[0] >= (uint32_t(1)));                // Size must be min 1
   assert(smem_box_shape[0] <= (uint32_t(1) << 8));           // Size must be max 2^8 = 256
@@ -1019,7 +1029,7 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
         tma_l2Promotion,
         tma_oobFill);
 
-    #if defined(PRINT_TMA_DESCRIPTOR)
+    #if (defined(DEBUG_TMA_DESCRIPTOR) || defined(PRINT_TMA_DESCRIPTOR))
           std::cerr << "TMA Desc Addr:   " << &tma_desc
                 << "\nformat         " << tma_format
                 << "\ndim            " << tma_dim

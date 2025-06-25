@@ -35,7 +35,9 @@
 #pragma once
 
 #include "cutlass/detail/helper_macros.hpp"
-
+#include "cutlass/cutlass.h"
+#include <stdio.h>
+constexpr int NumThreadsPerWarp = 32;
 #if defined(__CUDACC_RTC__)
 #include <cuda/std/cstdint>
 #else
@@ -49,7 +51,7 @@
 
 namespace cutlass {
 namespace arch {
-
+  
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if defined(CUTLASS_ENABLE_SYNCLOG)
