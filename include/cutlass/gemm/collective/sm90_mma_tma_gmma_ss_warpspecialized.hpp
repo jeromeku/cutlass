@@ -387,10 +387,10 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
                 }
             }
 
-            // Mainloop
-            #if defined(DEBUG_WS_COOP)
-            cutlass::debug::sleep(5000*(blockIdx.x + blockIdx.y));
-            #endif
+// Mainloop
+#if defined(DEBUG_WS_COOP)
+            cutlass::debug::sleep(5000 * (blockIdx.x + blockIdx.y));
+#endif
             CUTLASS_PRAGMA_NO_UNROLL
             for (; k_tile_count > 0; --k_tile_count)
             {
@@ -399,12 +399,12 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
 #if defined(DEBUG_WS_COOP)
 
                 printf(
-                        "DEBUG::%s:%d::load PIPE_FILL::cidx,cidy,block_rank,bIdx,bidy:(%d,%d), "
-                        "%d, (%d,%d)"
-                        "k_tile_count,index,phase,count,stages:%d %d %d %d %d\n",
-                        __FILE__, __LINE__, cidx, cidy, block_rank_in_cluster, bidx, bidy,
-                        k_tile_count, smem_pipe_write.index(), smem_pipe_write.phase(),
-                        smem_pipe_write.count_, PipelineState::Stages);
+                    "DEBUG::%s:%d::load PIPE_FILL::cidx,cidy,block_rank,bIdx,bidy:(%d,%d), "
+                    "%d, (%d,%d)"
+                    "k_tile_count,index,phase,count,stages:%d %d %d %d %d\n",
+                    __FILE__, __LINE__, cidx, cidy, block_rank_in_cluster, bidx, bidy, k_tile_count,
+                    smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_,
+                    PipelineState::Stages);
 #endif
 
                 pipeline.producer_acquire(smem_pipe_write);
@@ -428,14 +428,14 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
             }
 #if defined(DEBUG_WS_COOP)
 
-              cutlass::debug::sleep(1000* (blockIdx.x + blockIdx.y));  
-              printf(
-                    "DEBUG::%s:%d::load AFTER_PIPE_FILL::cidx,cidy,block_rank,bIdx,bidy:(%d,%d), "
-                    "%d, (%d,%d)"
-                    "k_tile_count,index,phase,count,stages:%d %d %d %d %d\n",
-                    __FILE__, __LINE__, cidx, cidy, block_rank_in_cluster, bidx,bidy,
-                    k_tile_count, smem_pipe_write.index(), smem_pipe_write.phase(),
-                    smem_pipe_write.count_, PipelineState::Stages);
+            cutlass::debug::sleep(1000 * (blockIdx.x + blockIdx.y));
+            printf(
+                "DEBUG::%s:%d::load AFTER_PIPE_FILL::cidx,cidy,block_rank,bIdx,bidy:(%d,%d), "
+                "%d, (%d,%d)"
+                "k_tile_count,index,phase,count,stages:%d %d %d %d %d\n",
+                __FILE__, __LINE__, cidx, cidy, block_rank_in_cluster, bidx, bidy, k_tile_count,
+                smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_,
+                PipelineState::Stages);
 
 #endif
         }
@@ -456,13 +456,12 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
  * still inverted from make_producer_start_state
  */
 #if defined(DEBUG_WS_COOP)
-            cutlass::debug::sleep(1000 * (blockIdx.x + blockIdx.y))
-                printf(
-                    "DEBUG::%s:%d::load_tail::blockIdx.x,blockIdx.y:(%d,%d) "
-                    "smem_pip_write: %d %d %d %d\n",
-                    __FILE__, __LINE__, blockIdx.x, blockIdx.y,
-                    smem_pipe_write.index(), smem_pipe_write.phase(), smem_pipe_write.count_,
-                    PipelineState::Stages);
+            cutlass::debug::sleep(1000 * (blockIdx.x + blockIdx.y));
+            printf(
+                "DEBUG::%s:%d::load_tail::blockIdx.x,blockIdx.y:(%d,%d) "
+                "smem_pip_write: %d %d %d %d\n",
+                __FILE__, __LINE__, blockIdx.x, blockIdx.y, smem_pipe_write.index(),
+                smem_pipe_write.phase(), smem_pipe_write.count_, PipelineState::Stages);
 #endif
             pipeline.producer_tail(smem_pipe_write);
         }
@@ -503,23 +502,24 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
                       "Stride of the first mode must be 0 and the size of the mode must be "
                       "NumThreadsPerWarpGroup");
 
-        #if defined(DEBUG_WS_COOP)
-        
+#if defined(DEBUG_WS_COOP)
+
         int warp_idx = canonical_warp_idx_sync();
         int warp_idx_in_warp_group = warp_idx % NumWarpsPerWarpGroup;
         int warp_group_thread_idx = thread_idx % NumThreadsPerWarpGroup;
-        int bidx = blockIdx.x; int bidy = blockIdx.y;
+        int bidx = blockIdx.x;
+        int bidy = blockIdx.y;
         int cluster_rank = cute::block_rank_in_cluster();
         bool should_print = warp_group_thread_idx == 0;
-        #endif
-        
+        bool should_print_one_block = warp_group_thread_idx == 0 && bidx < 2 && bidy < 2;
+#endif
+
         constexpr int MmaWarpGroups = size(TiledMma{}) / NumThreadsPerWarpGroup;
         Layout warp_group_thread_layout =
             make_layout(Int<MmaWarpGroups>{}, Int<NumThreadsPerWarpGroup>{});
 
         int warp_group_idx = __shfl_sync(0xFFFFFFFF, thread_idx / NumThreadsPerWarpGroup, 0);
-        
-        
+
         TiledMma tiled_mma;
         auto thread_mma = tiled_mma.get_slice(warp_group_thread_layout(warp_group_idx));
 
@@ -537,17 +537,31 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
         CUTE_STATIC_ASSERT_V(Int<DispatchPolicy::Stages>{} == size<2>(sA));  // PIPE
         CUTE_STATIC_ASSERT_V(Int<DispatchPolicy::Stages>{} == size<2>(sB));  // PIPE
 
-        #if defined(DEBUG_WS_COOP)
+#if defined(DEBUG_WS_COOP)
         cutlass::debug::sleep(1000 * (bidx + bidy));
-        if(should_print){
-          printf("DEBUG::mma: bid: (%d,%d), MmaWarpGroups: %d, K_PIPE_MMAS: %d, ThreadSlice: %d\n", bidx, bidy, MmaWarpGroups, K_PIPE_MMAS, warp_group_thread_layout(warp_group_idx));
-          printf("DEBUG::mma: bid: (%d,%d) thread mma:\n", bidx,bidy); print(thread_mma); printf("\n");
-          printf("DEBUG::mma: bid: (%d,%d) tCrA:\n", bidx,bidy); print(tCrA); printf("\n"); print(*tCrA); printf("\n");
-          printf("DEBUG::mma: bid: (%d,%d) tCrB:\n", bidx,bidy); print(tCrB); printf("\n"); print(*tCrB); printf("\n");
+        if (should_print_one_block)
+        {
+            printf(
+                "DEBUG::mma: bid: (%d,%d,%d), MmaWarpGroups: %d, K_PIPE_MMAS: %d, ThreadSlice: %d\n",
+                bidx, bidy, warp_group_idx, MmaWarpGroups, K_PIPE_MMAS, warp_group_thread_layout(warp_group_idx));
+            printf("DEBUG:sA: "); print(sA); printf("\n"); printf("DEBUG:sB: "); print(sB); printf("\n");
+            printf("DEBUG:tCsA: "); print(tCsA); printf("\n"); printf("DEBUG:tCsB: "); print(tCsB); printf("\n");
+            printf("DEBUG::mma: bid: (%d,%d) thread mma:\n", bidx, bidy);
+            print(thread_mma); 
+            printf("\n");
+            printf("DEBUG::mma: bid: (%d,%d) tCrA:\n", bidx, bidy);
+            print(tCrA);
+            printf("\n");
+            print(tCrA[0]);
+            printf("\n");
+            printf("DEBUG::mma: bid: (%d,%d) tCrB:\n", bidx, bidy);
+            print(tCrB);
+            printf("\n");
+            print(tCrB[0]);
+            printf("\n");
         }
-        #endif
+#endif
 
-        
         //
         // PIPELINED MAIN LOOP
         //
@@ -590,17 +604,26 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
 
         warpgroup_fence_operand(accum);
 
-        #if defined(DEBUG_WS_COOP)
+#if defined(DEBUG_WS_COOP)
         cutlass::debug::sleep(1000 * (bidx + bidy));
+        // if(should_print_one_block && bidx == 0 && bidy ==0 && warp_group_idx == 0){
+        //     printf("DEBUG::PROLOGUE k_block: %d\n"); print(accum); printf("\n");
+        // }
+
         #endif
         CUTLASS_PRAGMA_UNROLL
         for (int k_tile_prologue = prologue_mma_count - 1; k_tile_prologue > 0; --k_tile_prologue)
         {
-            #if defined(DEBUG_WS_COOP)
-            if(should_print){      
-              printf("DEBUG::mma_prologue:: bid: (%d,%d) k_tile_prologue: %d smem_pipe_read:: index: %d, phase: %d, count_: %d\n", bidx,bidy, k_tile_prologue, smem_pipe_read.index(), smem_pipe_read.phase(), smem_pipe_read.count_);
+#if defined(DEBUG_WS_COOP)
+            if (should_print_one_block)
+            {
+                printf(
+                    "DEBUG::mma_prologue:: bid: (%d,%d) k_tile_prologue: %d smem_pipe_read:: "
+                    "index: %d, phase: %d, count_: %d\n",
+                    bidx, bidy, k_tile_prologue, smem_pipe_read.index(), smem_pipe_read.phase(),
+                    smem_pipe_read.count_);
             }
-            #endif
+#endif
             // WAIT on smem_pipe_read until its data are available (phase bit flips from rdPhaseBit
             // value)
             auto barrier_token = pipeline.consumer_try_wait(smem_pipe_read);
@@ -619,20 +642,27 @@ struct CollectiveMma<MainloopSm90TmaGmmaWarpSpecialized<Stages, ClusterShape, Ke
         // Mainloop GMMAs
         k_tile_count -= prologue_mma_count;
 
-        #if defined(DEBUG_WS_COOP)
+#if defined(DEBUG_WS_COOP)
         cutlass::debug::sleep(1000 * (bidx + bidy));
-        #endif
+#endif
 
         CUTLASS_PRAGMA_NO_UNROLL
         for (; k_tile_count > 0; --k_tile_count)
         {
-            #if defined(DEBUG_WS_COOP)
-            if(should_print){      
-              printf("DEBUG::mma_main_loop:: bid: (%d,%d) k_tile_prologue: %d k_tile_count: %d, smem_pipe_read:: index: %d, phase: %d, count_: %d, smem_pipe_release:: index: %d, phase: %d, count_: %d\n", bidx,bidy, k_tile_count, smem_pipe_read.index(), smem_pipe_read.phase(), smem_pipe_read.count_, smem_pipe_release.index(), smem_pipe_release.phase(), smem_pipe_release.count_);
+#if defined(DEBUG_WS_COOP)
+            if (should_print_one_block)
+            {
+                printf(
+                    "DEBUG::mma_main_loop:: bid: (%d,%d) k_tile_prologue: %d k_tile_count: %d, "
+                    "smem_pipe_read:: index: %d, phase: %d, count_: %d, smem_pipe_release:: index: "
+                    "%d, phase: %d, count_: %d\n",
+                    bidx, bidy, prologue_mma_count, k_tile_count, smem_pipe_read.index(), smem_pipe_read.phase(),
+                    smem_pipe_read.count_, smem_pipe_release.index(), smem_pipe_release.phase(),
+                    smem_pipe_release.count_);
             }
-            #endif
+#endif
 
-          // WAIT on smem_pipe_read until its data are available (phase bit flips from rdPhaseBit
+            // WAIT on smem_pipe_read until its data are available (phase bit flips from rdPhaseBit
             // value)
             auto barrier_token = pipeline.consumer_try_wait(smem_pipe_read);
             pipeline.consumer_wait(smem_pipe_read, barrier_token);
