@@ -62,11 +62,12 @@ __global__ void __cluster_dims__(CLUSTER_X, CLUSTER_Y, CLUSTER_Z) kernel()
   // } else {
   //   arrival_token = cuda::ptx::mbarrier_arrive(sem_release, scope_cluster, space_shared, cuda::device::barrier_native_handle(bar));
   // }
-
+#if defined(DEBUG)
   if (threadIdx.x == 0)
   {
     printf("[block %d] arrived with expected tx count = %llu, sending to block rank: %u\n", cluster.block_rank(), sizeof(receive_buffer), other_block_rank);
   }
+#endif
 
   // Send bytes to remote buffer, arriving on remote barrier
   if (threadIdx.x == 0)
@@ -74,6 +75,7 @@ __global__ void __cluster_dims__(CLUSTER_X, CLUSTER_Y, CLUSTER_Z) kernel()
     cuda::ptx::st_async(remote_buffer, {int(cluster.block_rank()), 2, 3, 4}, remote_bar);
   }
 
+#if defined(DEBUG)
   if (threadIdx.x == 0)
   {
     printf("[block %d] -> %u: st_async to %p, %p\n",
@@ -82,12 +84,14 @@ __global__ void __cluster_dims__(CLUSTER_X, CLUSTER_Y, CLUSTER_Z) kernel()
            remote_buffer,
            remote_bar);
   }
+#endif
 
   // Wait on local barrier:
   while (!cuda::ptx::mbarrier_try_wait(sem_acquire, scope_cluster, cuda::device::barrier_native_handle(bar), arrival_token))
   {
   }
 
+#if defined(DEBUG)
   // Print received values:
   if (threadIdx.x == 0)
   {
@@ -96,6 +100,8 @@ __global__ void __cluster_dims__(CLUSTER_X, CLUSTER_Y, CLUSTER_Z) kernel()
         cluster.block_rank(),
         receive_buffer[0], receive_buffer[1], receive_buffer[2], receive_buffer[3]);
   }
+#endif
+
 }
 
 int main()
@@ -107,7 +113,10 @@ int main()
   }();
 
   constexpr int num_threads = 128;
+#if defined(DEBUG)
   printf("Store remote with %d blocks, %d threads\n", num_blocks, num_threads);
+ #endif
+ 
   kernel<cluster_dims.x, cluster_dims.y, cluster_dims.z><<<num_blocks, num_threads>>>();
   checkLastCudaError("After kernel launch");
     
