@@ -19,7 +19,7 @@ ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
 all: clean store_remote
 
 store_remote: store_remote.cu
-	nvcc ${ARCH_FLAGS} ${CXX_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
+	nvcc ${ARCH_FLAGS} ${CXX_FLAGS} ${PROFILE_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
 
 clean:
 	rm -rf tensor_encode
