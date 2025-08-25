@@ -1,0 +1,25 @@
+CUTLASS_REPO_PATH = /home/jeromeku/cutlass
+CUTLASS_HEADERS = ${CUTLASS_REPO_PATH}/include 
+CUTLASS_TOOL_HEADERS = ${CUTLASS_REPO_PATH}/tools/util/include
+CUTLASS_TEST_HEADERS = ${CUTLASS_REPO_PATH}/test/unit/common
+CUTLASS_DEBUG_FLAGS=-DCUTLASS_DEBUG_TRACE_LEVEL=2
+
+CUDA_ROOT = /home/jeromeku/cuda-toolkit
+CUDA_LIB_DIR=-L${CUDA_ROOT}/lib64/stubs/
+CXX_FLAGS=--expt-relaxed-constexpr -std=c++17
+DEBUG_FLAGS=-G -g -O0
+PROFILE_FLAGS=-lineinfo -g
+PTXAS_FLAGS=--ptxas-options=-v --ptxas-options=--verbose,--register-usage-level=10,--warn-on-local-memory-usage
+CUDA_ARCH=compute_90a
+CUDA_CODE=sm_90a
+ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
+
+.PHONY: all clean
+
+all: store_remote
+
+store_remote: store_remote.cu
+	nvcc ${ARCH_FLAGS} ${CXX_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
+
+clean:
+	rm -rf tensor_encode
