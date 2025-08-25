@@ -16,7 +16,7 @@ ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
 
 .PHONY: all clean
 
-all: store_remote
+all: clean store_remote
 
 store_remote: store_remote.cu
 	nvcc ${ARCH_FLAGS} ${CXX_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
