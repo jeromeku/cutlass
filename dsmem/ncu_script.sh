@@ -3,21 +3,22 @@
 # Configuration
 NCU="/home/jeromeku/cuda-toolkit/bin/ncu"
 SCRIPT="store_remote"
-SET="detailed"
+SET="full"
 SECTION_REGEX="regex:.*(Sampling|Warp).*"
 TS=$(date -u +%Y%m%dT%H%M)
 
 # Core arguments array
 declare -a ARGS=(
     "--set" "${SET}"
-    "--section" "${SECTION_REGEX}"
     "--import-source" "yes"
     "-f"
     "--verbose"
-    "-o" "ncu_${SCRIPT}_${TS}.ncu-rep"
+    "-o" "ncu_${SCRIPT}_${SET}_${TS}.ncu-rep"
 )
 
+[[ -n ${SECTION_REGEX} ]] && ARGS+=("--section" "${SECTION_REGEX}")
 # Feature flags
+
 ENABLE_CALLSTACK=1
 ENABLE_PM_SAMPLING=0
 ENABLE_WARP_SAMPLING=0
@@ -27,7 +28,7 @@ ENABLE_MP_ARGS=0
 
 # Conditional arguments based on feature flags
 if [[ ${ENABLE_CALLSTACK} -eq 1 ]]; then
-    ARGS+=("--call-stack" "yes")
+    ARGS+=("--call-stack")
     ARGS+=("--call-stack-type" "native")
     ARGS+=("--call-stack-type" "python")
 fi
