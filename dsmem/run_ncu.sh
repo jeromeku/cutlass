@@ -9,11 +9,14 @@ CLOCK="--clock-control base"
 TENSOR_PIPE="pipeline-boost-state stable"
 MP_ARGS="--target-processes all"
 SECTION_REGEX="regex:.*(Sampling|Warp).*"
+CALLSTACK=1
+CALLSTACK_TYPES="--call-stack-type native --call-stack-type python"
 
 CMD="${NCU} \
   --set ${SET} \
   --section \"${SECTION_REGEX}\" \
   --import-source yes \
+  --call-stack yes ${CALLSTACK_TYPES} \
   -f \
   --verbose \
   -o ncu_${SCRIPT}.ncu-rep \
