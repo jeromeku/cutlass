@@ -955,7 +955,7 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
     smem_box_shape[i] *= size<i>(tma_gbasis);
   });
   #if defined(PRINT_TMA_DESCRIPTOR)
-  std::cout << __FILE__ << "Before multicast\n";
+  std::cout << __FILE__ << __LINE__ << "\nBefore multicast\n";
   for(int i = 0; i < smem_box_shape.size(); i++){
     printf("smem_box[%d] = %u\n", i, smem_box_shape[i]);
   }
