@@ -1047,6 +1047,7 @@ make_tma_copy_desc(Tensor<GEngine,GLayout> const& gtensor,         // The origin
             << "\nl2Promotion    " << tma_l2Promotion
             << "\noobFill        " << tma_oobFill << std::endl;
     #endif
+    
     if (result != CUDA_SUCCESS) {
       std::cerr << "TMA Desc Addr:   " << &tma_desc
                 << "\nformat         " << tma_format
