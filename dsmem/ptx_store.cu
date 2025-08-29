@@ -8,24 +8,71 @@
 
 using namespace cute;
 
-#define CUDA_CHECK(call) \
-    do { \
-        cudaError_t error = call; \
-        if (error != cudaSuccess) { \
-            std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ \
-                      << " - " << cudaGetErrorString(error) << std::endl; \
-            std::exit(EXIT_FAILURE); \
-        } \
-    } while(0)
+using T = cute::uint32_t;
+constexpr int NUM_ELEMS = 4;
+
+__device__ inline bool should_print()
+{
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+
+  if (tx == 0 && ty == 0)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+#ifndef PRINT_CLUSTER_DELAY_CYCLES
+#define PRINT_CLUSTER_DELAY_CYCLES 10000000ULL
+#endif
+
+#define PRINT_CLUSTER(expr)                                                                              \
+  do                                                                                                     \
+  {                                                                                                      \
+    if (threadIdx.x == 0 && threadIdx.y == 0)                                                            \
+    {                                                                                                    \
+      int _cluster_rank = cute::block_rank_in_cluster();                                                 \
+      unsigned long long _delay_cycles = PRINT_CLUSTER_DELAY_CYCLES * (unsigned long long)_cluster_rank; \
+      if (_delay_cycles)                                                                                 \
+      {                                                                                                  \
+        unsigned long long _start = clock64();                                                           \
+        while (clock64() - _start < _delay_cycles)                                                       \
+        { /* spin */                                                                                     \
+        }                                                                                                \
+      }                                                                                                  \
+      printf("ClusterRank[%d]: ", _cluster_rank);                                                        \
+      expr;                                                                                              \
+      printf("\n");                                                                                      \
+    }                                                                                                    \
+  } while (0)
+
+#define CUDA_CHECK(call)                                            \
+  do                                                                \
+  {                                                                 \
+    cudaError_t error = call;                                       \
+    if (error != cudaSuccess)                                       \
+    {                                                               \
+      std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__  \
+                << " - " << cudaGetErrorString(error) << std::endl; \
+      std::exit(EXIT_FAILURE);                                      \
+    }                                                               \
+  } while (0)
 
 // Function to check and print last CUDA error
-void checkLastCudaError(const char* msg = "CUDA Error") {
-    cudaError_t error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        std::cerr << msg << ": " << cudaGetErrorString(error) << std::endl;
-    } else {
-        std::cout << msg << ": No error detected" << std::endl;
-    }
+void checkLastCudaError(const char *msg = "CUDA Error")
+{
+  cudaError_t error = cudaGetLastError();
+  if (error != cudaSuccess)
+  {
+    std::cerr << msg << ": " << cudaGetErrorString(error) << std::endl;
+  }
+  else
+  {
+    std::cout << msg << ": No error detected" << std::endl;
+  }
 }
 
 template <class ElementType, class SmemLayout>
@@ -35,90 +82,82 @@ struct SharedStorage
   alignas(16) cute::uint64_t tma_load_mbar[1];
 };
 
-template <typename T, typename VecLayout>
-__global__ void kernel()
+__device__ void print_block_id(const char *msg)
 {
-  using cuda::ptx::scope_cluster;
-  using cuda::ptx::sem_acquire;
-  using cuda::ptx::sem_release;
-  using cuda::ptx::space_cluster;
-  using cuda::ptx::space_shared;
-  dim3 cluster_dims = cluster_grid_dims();
-  if(thread0()){
-    printf("Cluster dims (%d, %d)\n", cluster_dims.x, cluster_dims.y);
-  }
-  extern __shared__ char shared_memory[];
-  using SharedStorage = SharedStorage<T, VecLayout>;
-  SharedStorage& shared_storage = *reinterpret_cast<SharedStorage*>(shared_memory);
-
-  namespace cg = cooperative_groups;
-  cg::cluster_group cluster = cg::this_cluster();
-
-  using barrier_t = cuda::barrier<cuda::thread_scope_block>;
-
-#pragma nv_diag_suppress static_var_with_dynamic_init
-  __shared__ int receive_buffer[4];
-  __shared__ barrier_t bar;
-  // only thread 0 arrives
-  init(&bar, 1);
-
-  // Sync cluster to ensure remote barrier is initialized.
-  cluster.sync();
-
-  // Get address of remote cluster barrier:
-  unsigned int other_block_rank = cluster.block_rank() ^ 1;
-  uint64_t *remote_bar = cluster.map_shared_rank(cuda::device::barrier_native_handle(bar), other_block_rank);
-  int *remote_buffer = cluster.map_shared_rank(&receive_buffer[0], other_block_rank);
-
-  // Arrive on local barrier:
-  uint64_t arrival_token;
-  if (threadIdx.x == 0)
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+  int cta_rank_in_cluster = cute::block_rank_in_cluster();
+  if (should_print())
   {
-    // Thread 0 arrives and indicates it expects to receive a certain number of bytes as well
-    arrival_token = cuda::ptx::mbarrier_arrive_expect_tx(sem_release, scope_cluster, space_shared, cuda::device::barrier_native_handle(bar), sizeof(receive_buffer));
+    printf("BlockId: (%d, %d), Cluster rank: %d :: %s\n", bx, by, cta_rank_in_cluster, msg);
   }
-  // } else {
-  //   arrival_token = cuda::ptx::mbarrier_arrive(sem_release, scope_cluster, space_shared, cuda::device::barrier_native_handle(bar));
-  // }
-#if defined(DEBUG)
-  if (threadIdx.x == 0)
-  {
-    printf("[block %d] arrived with expected tx count = %llu, sending to block rank: %u\n", cluster.block_rank(), sizeof(receive_buffer), other_block_rank);
-  }
-#endif
+}
+template <typename T, typename VecLayout>
+__global__ void kernel(int cluster_size)
+{
 
-  // Send bytes to remote buffer, arriving on remote barrier
-  if (threadIdx.x == 0)
-  {
-    cuda::ptx::st_async(remote_buffer, {int(cluster.block_rank()), 2, 3, 4}, remote_bar);
-  }
+  bool elect_one_thr = cute::elect_one_sync();
+  int warp_idx = cutlass::canonical_warp_idx();
+  bool elected = warp_idx == 0 && elect_one_thr;
 
-#if defined(DEBUG)
-  if (threadIdx.x == 0)
-  {
-    printf("[block %d] -> %u: st_async to %p, %p\n",
-           cluster.block_rank(),
-           other_block_rank,
-           remote_buffer,
-           remote_bar);
-  }
-#endif
+  extern __shared__ __align__(16) unsigned char shared_bytes[];
+  using Storage = SharedStorage<T, VecLayout>;
+  Storage& shared_storage = *reinterpret_cast<Storage*>(shared_bytes);
 
-  // Wait on local barrier:
-  while (!cuda::ptx::mbarrier_try_wait(sem_acquire, scope_cluster, cuda::device::barrier_native_handle(bar), arrival_token))
-  {
+  if (elected) {
+    printf("mbar align = %llu\n",
+          (unsigned long long)((uintptr_t)shared_storage.tma_load_mbar & 0xF));
   }
 
-#if defined(DEBUG)
-  // Print received values:
-  if (threadIdx.x == 0)
+  cute::Tensor sA = make_tensor(make_smem_ptr(shared_storage.smem.begin()), VecLayout{});
+  uint64_t *tma_load_mbar = shared_storage.tma_load_mbar;
+
+  int cta_rank_in_cluster = cute::block_rank_in_cluster();
+  unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
+
+  if (elected)
   {
-    printf(
-        "[block %d] receive_buffer = { %d, %d, %d, %d }\n",
-        cluster.block_rank(),
-        receive_buffer[0], receive_buffer[1], receive_buffer[2], receive_buffer[3]);
+    // Initialize TMA barrier
+    cute::initialize_barrier(tma_load_mbar[0], /* num_threads */ 1);
   }
-#endif
+  // Ensures all CTAs in the Cluster have initialized
+  __syncthreads();
+  cute::cluster_sync();
+
+  // Val to send
+  T val = cta_rank_in_cluster;
+  constexpr int kTmaTransactionBytes = sizeof(T);
+  // constexpr int kTmaTransactionBytes = sizeof(ArrayEngine<T, CUTE_STATIC_V(size(filter_zeros(sA)))>);
+  PRINT_CLUSTER(printf("Sending to rank %d, payload size: %d", dst_rank, kTmaTransactionBytes));
+  
+  if (elected)
+  {
+    cute::set_barrier_transaction_bytes(tma_load_mbar[0], kTmaTransactionBytes);
+  }
+  __syncthreads();
+  PRINT_CLUSTER(printf("Value before send %u\n", sA(0)));
+
+  uint32_t barrier_address = cute::cast_smem_ptr_to_uint(tma_load_mbar);
+  uint32_t remote_barrier_address = cute::set_block_rank(barrier_address, dst_rank);
+  uint32_t smem_address = cute::cast_smem_ptr_to_uint(shared_storage.smem.begin());
+  uint32_t remote_smem_address = cute::set_block_rank(smem_address, dst_rank);
+
+  __syncthreads();
+  PRINT_CLUSTER(printf("Sending %u to %d\n", val, dst_rank));
+  if (elect_one_thr){
+    cute::store_shared_remote(val, remote_smem_address, remote_barrier_address, dst_rank);
+  }
+  PRINT_CLUSTER(printf("Sent!"));
+  __syncthreads();
+  int tma_phase_bit = 0;
+  cute::wait_barrier(tma_load_mbar[0], tma_phase_bit);
+  PRINT_CLUSTER(printf("Received val %u\n", sA(0)));
+
+  __syncthreads();
+  cute::cluster_sync();
+  PRINT_CLUSTER(printf("Exiting!"));
 
 }
 
@@ -126,31 +165,29 @@ int main()
 {
   constexpr dim3 cluster_dims = {4, 1, 1};
   constexpr int num_blocks = [&]()
-  { 
+  {
     return cluster_dims.x * cluster_dims.y * cluster_dims.z;
   }();
 
-  constexpr int num_threads = 128;
+  constexpr int num_threads = 32;
 #if defined(DEBUG)
   printf("Store remote with %d blocks, %d threads\n", num_blocks, num_threads);
- #endif
-  
-  using T = cute::uint16_t;
-  constexpr int NUM_ELEMS = 4;
+#endif
 
   using VecLayout = Layout<Shape<Int<NUM_ELEMS>>>;
-  dim3 dimBlock(128);
+  dim3 dimBlock(num_threads);
   constexpr int cluster_size = 4;
   dim3 dimCluster(cluster_size);
   dim3 dimGrid = dimCluster;
   int smem_size = sizeof(SharedStorage<T, VecLayout>);
 
-  void * kernel_ptr = (void *)kernel<T, VecLayout>;
+  void *kernel_ptr = (void *)kernel<T, VecLayout>;
   cutlass::launch_kernel_on_cluster({dimGrid, dimBlock, dimCluster, smem_size},
-                                    kernel_ptr);
+                                    kernel_ptr,
+                                    cluster_size);
 
   checkLastCudaError("After kernel launch");
-    
+
   CUDA_CHECK(cudaDeviceSynchronize());
   checkLastCudaError("After device synchronization");
 }
