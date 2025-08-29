@@ -13,13 +13,24 @@ PTXAS_FLAGS=--ptxas-options=-v --ptxas-options=--verbose,--register-usage-level=
 CUDA_ARCH=compute_90a
 CUDA_CODE=sm_90a
 ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
-
+VERBOSE_FLAG=-DDEBUG
 .PHONY: all clean
 
 all: clean store_remote
 
 store_remote: store_remote.cu
-	nvcc ${ARCH_FLAGS} ${CXX_FLAGS} ${PROFILE_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
+	nvcc ${VERBOSE_FLAG} ${ARCH_FLAGS} ${CXX_FLAGS} ${PROFILE_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
+
+ptx_store: ptx_store.cu
+	nvcc ${VERBOSE_FLAG} \
+	${ARCH_FLAGS} \
+	-I${CUDA_ROOT}/include \
+	${CXX_FLAGS} \
+	-I${CUTLASS_HEADERS} \
+	-I${CUTLASS_TOOL_HEADERS} \
+	-I${CUTLASS_TEST_HEADERS} \
+	${CUTLASS_DEBUG_FLAGS} \
+	-o $@ $<
 
 clean:
-	rm -rf tensor_encode
+	rm -rf ptx_store store_remote
