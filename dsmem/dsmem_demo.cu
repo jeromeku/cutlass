@@ -1,8 +1,3 @@
-#include <cstdio>
-#include <cuda/ptx>
-#include <cuda/barrier>
-#include <cooperative_groups.h>
-#include <iostream>
 #include <cute/tensor.hpp>
 #include <cutlass/cluster_launch.hpp>
 #include "utils.hpp"
