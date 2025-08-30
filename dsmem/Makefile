@@ -16,10 +16,7 @@ ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
 VERBOSE_FLAG=-DDEBUG
 .PHONY: all clean
 
-all: clean store_remote
-
-store_remote: store_remote.cu
-	nvcc ${VERBOSE_FLAG} ${ARCH_FLAGS} ${CXX_FLAGS} ${PROFILE_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
+all: clean ptx_store
 
 ptx_store: ptx_store.cu
 	nvcc \
@@ -29,8 +26,7 @@ ptx_store: ptx_store.cu
 	-I${CUTLASS_HEADERS} \
 	-I${CUTLASS_TOOL_HEADERS} \
 	-I${CUTLASS_TEST_HEADERS} \
-	${CUTLASS_DEBUG_FLAGS} \
 	-o $@ $<
 
 clean:
-	rm -rf ptx_store store_remote
+	rm -rf ptx_store
