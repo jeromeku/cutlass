@@ -97,8 +97,7 @@ __device__ void print_block_id(const char *msg)
 
 // Store value to remote shared memory in the cluster
 CUTE_DEVICE
-void
-store_shared_remote(uint32_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
+void store_shared_remote(uint32_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
 {
   uint32_t dsmem_addr = set_block_rank(smem_addr, dst_cta_rank);
   uint32_t remote_barrier_addr = set_block_rank(mbarrier_addr, dst_cta_rank);
@@ -120,31 +119,34 @@ store_shared_remote_u64(uint64_t value, uint32_t smem_addr, uint32_t mbarrier_ad
 template <typename T, typename VecLayout>
 __global__ void kernel(int cluster_size)
 {
-
-  bool elect_one_thr = cute::elect_one_sync();
-  int warp_idx = cutlass::canonical_warp_idx();
-
-  // One thread per CTA sends (and arrives on mbarrier)
-  bool elected = warp_idx == 0 && elect_one_thr;
+  // Only support sending 2 uint32_t for this demo
+  CUTE_STATIC_ASSERT(cute::is_same_v<T, uint32_t>);
+  CUTE_STATIC_ASSERT(cute::is_same_v<decltype(size(VecLayout{})), Int<2>>);
 
   extern __shared__ __align__(16) unsigned char shared_bytes[];
   using Storage = SharedStorage<T, VecLayout>;
   Storage& shared_storage = *reinterpret_cast<Storage*>(shared_bytes);
 
+  // One thread per CTA sends (and arrives on mbarrier)
+  bool elect_one_thr = cute::elect_one_sync();
+  int warp_idx = cutlass::canonical_warp_idx();
+  bool elected = warp_idx == 0 && elect_one_thr;
+  int cta_rank_in_cluster = cute::block_rank_in_cluster();
+
   // Sanity check that mbarrier is properly aligned
   if (elected) {
-    printf("mbar align = %llu\n",
-          (unsigned long long)((uintptr_t)shared_storage.tma_load_mbar & 0xF));
+    unsigned long long align = (unsigned long long)((uintptr_t)shared_storage.tma_load_mbar & 0xF);
+    assert(align == 0);
   }
 
   cute::Tensor sA = make_tensor(make_smem_ptr(shared_storage.smem.begin()), VecLayout{});
-  uint64_t *tma_load_mbar = shared_storage.tma_load_mbar;
+  Layout l = sA.layout();
 
-  int cta_rank_in_cluster = cute::block_rank_in_cluster();
+  uint64_t *tma_load_mbar = shared_storage.tma_load_mbar;
 
   // Send in ring
   unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
-
+  
   if (elected)
   {
     // Initialize TMA barrier
@@ -159,48 +161,44 @@ __global__ void kernel(int cluster_size)
   constexpr int num_vals = int(size(sA));
   T vals[num_vals];
   constexpr int kTmaTransactionBytes = sizeof(T) * num_vals;
-
   for(int i = 0; i < num_vals; i++){
     vals[i] = cta_rank_in_cluster;
   }
+  uint64_t *payload = reinterpret_cast<uint64_t *>(vals);
 
-  // T val = cta_rank_in_cluster;
-  // constexpr int kTmaTransactionBytes = sizeof(ArrayEngine<T, CUTE_STATIC_V(size(filter_zeros(sA)))>);
+  #if defined(DEBUG)
   PRINT_CLUSTER(printf("Sending to rank %d, payload size: %d", dst_rank, kTmaTransactionBytes));
-  
-  if (elected)
-  {
-    cute::set_barrier_transaction_bytes(tma_load_mbar[0], kTmaTransactionBytes);
-  }
-  __syncthreads();
-  PRINT_CLUSTER(printf("Value before send %u\n", sA(0)));
+#endif
 
+  // Map remote addresses for mbarrier and smem buffer
   uint32_t barrier_address = cute::cast_smem_ptr_to_uint(tma_load_mbar);
   uint32_t remote_barrier_address = cute::set_block_rank(barrier_address, dst_rank);
   uint32_t smem_address = cute::cast_smem_ptr_to_uint(shared_storage.smem.begin());
   uint32_t remote_smem_address = cute::set_block_rank(smem_address, dst_rank);
 
-  __syncthreads();
-#if defined(DEBUG)
-
-  PRINT_CLUSTER(printf("Sending %u to %d\n", vals[0], dst_rank));
-#endif
-
-  uint64_t *payload = reinterpret_cast<uint64_t *>(vals);
-  if (elect_one_thr){
+  if (elected)
+  {
+    // Set transaction bytes to await
+    cute::set_barrier_transaction_bytes(tma_load_mbar[0], kTmaTransactionBytes);
+    // Send
     store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
-
   __syncthreads();
-  int tma_phase_bit = 0;
-  cute::wait_barrier(tma_load_mbar[0], tma_phase_bit);
+
+#if defined(DEBUG)
+  PRINT_CLUSTER(printf("Sending %u to %d\n", vals[0], dst_rank));
+#endif
+ 
+  // Wait in loop, mbarrier initializes with phase == 0;
+  int phase = 0;
+  cute::wait_barrier(tma_load_mbar[0], phase);
+
+  // Print results, cluster rank i should print the previous rank
   for(int i = 0; i < int(size(sA)); i++){
     PRINT_CLUSTER(printf("Received sA(%d) %u\n", i, sA(i)));
   }
-
   __syncthreads();
   cute::cluster_sync();
-
 }
 
 int main()
@@ -217,6 +215,7 @@ int main()
 #endif
 
   using VecLayout = Layout<Shape<Int<NUM_ELEMS>>>;
+  
   dim3 dimBlock(num_threads);
   constexpr int cluster_size = 4;
   dim3 dimCluster(cluster_size);
