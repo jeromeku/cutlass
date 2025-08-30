@@ -9,11 +9,9 @@ constexpr int NUM_ELEMS = 2;
 constexpr int NUM_THREADS = 32;
 constexpr int CLUSTER_SIZE = 4;
 
-
 // Store value to remote shared memory in the cluster
 CUTE_DEVICE
-void
-store_shared_remote_u64(uint64_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
+void store_shared_remote_u64(uint64_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
 {
   uint32_t dsmem_addr = set_block_rank(smem_addr, dst_cta_rank);
   uint32_t remote_barrier_addr = set_block_rank(mbarrier_addr, dst_cta_rank);
@@ -38,7 +36,7 @@ __global__ void dsmem_store_kernel(int cluster_size)
 
   extern __shared__ __align__(16) unsigned char shared_bytes[];
   using Storage = SharedStorage<T, VecLayout>;
-  Storage& shared_storage = *reinterpret_cast<Storage*>(shared_bytes);
+  Storage &shared_storage = *reinterpret_cast<Storage *>(shared_bytes);
 
   // One thread per CTA sends (and arrives on mbarrier)
   bool elect_one_thr = cute::elect_one_sync();
@@ -49,7 +47,8 @@ __global__ void dsmem_store_kernel(int cluster_size)
   int cta_rank_in_cluster = cute::block_rank_in_cluster();
 
   // Sanity check that mbarrier is properly aligned
-  if (elected) {
+  if (elected)
+  {
     unsigned long long align = (unsigned long long)((uintptr_t)shared_storage.mbar & 0xF);
     assert(align == 0);
   }
@@ -60,7 +59,7 @@ __global__ void dsmem_store_kernel(int cluster_size)
 
   // Send in ring (rank 0 -> rank 1 -> rank2 -> rank3 -> rank0)
   unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
-  
+
   if (elected)
   {
     // Initialize mbarrier, **1** thread arrives
@@ -75,7 +74,8 @@ __global__ void dsmem_store_kernel(int cluster_size)
   constexpr int num_vals = int(size(sA));
   T vals[num_vals];
   constexpr int kTransactionBytes = sizeof(T) * num_vals;
-  for(int i = 0; i < num_vals; i++){
+  for (int i = 0; i < num_vals; i++)
+  {
     vals[i] = cta_rank_in_cluster;
   }
   uint64_t *payload = reinterpret_cast<uint64_t *>(vals);
@@ -94,7 +94,7 @@ __global__ void dsmem_store_kernel(int cluster_size)
     store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
   __syncthreads();
- 
+
   // Wait in loop, mbarrier initial state is 0;
   int phase = 0;
   cute::wait_barrier(mbar[0], phase);
