@@ -9,7 +9,7 @@
 using namespace cute;
 
 using T = cute::uint32_t;
-constexpr int NUM_ELEMS = 4;
+constexpr int NUM_ELEMS = 2;
 
 __device__ inline bool should_print()
 {
@@ -94,18 +94,44 @@ __device__ void print_block_id(const char *msg)
     printf("BlockId: (%d, %d), Cluster rank: %d :: %s\n", bx, by, cta_rank_in_cluster, msg);
   }
 }
+
+// Store value to remote shared memory in the cluster
+CUTE_DEVICE
+void
+store_shared_remote(uint32_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
+{
+  uint32_t dsmem_addr = set_block_rank(smem_addr, dst_cta_rank);
+  uint32_t remote_barrier_addr = set_block_rank(mbarrier_addr, dst_cta_rank);
+  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.u32 [%0], %1, [%2];"
+               : : "r"(dsmem_addr), "r"(value), "r"(remote_barrier_addr));
+}
+
+// Store value to remote shared memory in the cluster
+CUTE_DEVICE
+void
+store_shared_remote_u64(uint64_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
+{
+  uint32_t dsmem_addr = set_block_rank(smem_addr, dst_cta_rank);
+  uint32_t remote_barrier_addr = set_block_rank(mbarrier_addr, dst_cta_rank);
+  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.u64 [%0], %1, [%2];"
+               : : "r"(dsmem_addr), "l"(value), "r"(remote_barrier_addr));
+}
+
 template <typename T, typename VecLayout>
 __global__ void kernel(int cluster_size)
 {
 
   bool elect_one_thr = cute::elect_one_sync();
   int warp_idx = cutlass::canonical_warp_idx();
+
+  // One thread per CTA sends (and arrives on mbarrier)
   bool elected = warp_idx == 0 && elect_one_thr;
 
   extern __shared__ __align__(16) unsigned char shared_bytes[];
   using Storage = SharedStorage<T, VecLayout>;
   Storage& shared_storage = *reinterpret_cast<Storage*>(shared_bytes);
 
+  // Sanity check that mbarrier is properly aligned
   if (elected) {
     printf("mbar align = %llu\n",
           (unsigned long long)((uintptr_t)shared_storage.tma_load_mbar & 0xF));
@@ -115,6 +141,8 @@ __global__ void kernel(int cluster_size)
   uint64_t *tma_load_mbar = shared_storage.tma_load_mbar;
 
   int cta_rank_in_cluster = cute::block_rank_in_cluster();
+
+  // Send in ring
   unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
 
   if (elected)
@@ -122,13 +150,21 @@ __global__ void kernel(int cluster_size)
     // Initialize TMA barrier
     cute::initialize_barrier(tma_load_mbar[0], /* num_threads */ 1);
   }
+
   // Ensures all CTAs in the Cluster have initialized
   __syncthreads();
   cute::cluster_sync();
 
-  // Val to send
-  T val = cta_rank_in_cluster;
-  constexpr int kTmaTransactionBytes = sizeof(T);
+  // Send self cluster rank
+  constexpr int num_vals = int(size(sA));
+  T vals[num_vals];
+  constexpr int kTmaTransactionBytes = sizeof(T) * num_vals;
+
+  for(int i = 0; i < num_vals; i++){
+    vals[i] = cta_rank_in_cluster;
+  }
+
+  // T val = cta_rank_in_cluster;
   // constexpr int kTmaTransactionBytes = sizeof(ArrayEngine<T, CUTE_STATIC_V(size(filter_zeros(sA)))>);
   PRINT_CLUSTER(printf("Sending to rank %d, payload size: %d", dst_rank, kTmaTransactionBytes));
   
@@ -145,19 +181,25 @@ __global__ void kernel(int cluster_size)
   uint32_t remote_smem_address = cute::set_block_rank(smem_address, dst_rank);
 
   __syncthreads();
-  PRINT_CLUSTER(printf("Sending %u to %d\n", val, dst_rank));
+#if defined(DEBUG)
+
+  PRINT_CLUSTER(printf("Sending %u to %d\n", vals[0], dst_rank));
+#endif
+
+  uint64_t *payload = reinterpret_cast<uint64_t *>(vals);
   if (elect_one_thr){
-    cute::store_shared_remote(val, remote_smem_address, remote_barrier_address, dst_rank);
+    store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
-  PRINT_CLUSTER(printf("Sent!"));
+
   __syncthreads();
   int tma_phase_bit = 0;
   cute::wait_barrier(tma_load_mbar[0], tma_phase_bit);
-  PRINT_CLUSTER(printf("Received val %u\n", sA(0)));
+  for(int i = 0; i < int(size(sA)); i++){
+    PRINT_CLUSTER(printf("Received sA(%d) %u\n", i, sA(i)));
+  }
 
   __syncthreads();
   cute::cluster_sync();
-  PRINT_CLUSTER(printf("Exiting!"));
 
 }
 
