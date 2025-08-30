@@ -75,12 +75,6 @@ void checkLastCudaError(const char *msg = "CUDA Error")
   }
 }
 
-template <class ElementType, class SmemLayout>
-struct SharedStorage
-{
-  cute::ArrayEngine<ElementType, cute::cosize_v<SmemLayout>> smem;
-  alignas(16) cute::uint64_t tma_load_mbar[1];
-};
 
 __device__ void print_block_id(const char *msg)
 {
@@ -116,8 +110,15 @@ store_shared_remote_u64(uint64_t value, uint32_t smem_addr, uint32_t mbarrier_ad
                : : "r"(dsmem_addr), "l"(value), "r"(remote_barrier_addr));
 }
 
+template <class ElementType, class SmemLayout>
+struct SharedStorage
+{
+  cute::ArrayEngine<ElementType, cute::cosize_v<SmemLayout>> smem;
+  alignas(16) cute::uint64_t mbar[1];
+};
+
 template <typename T, typename VecLayout>
-__global__ void kernel(int cluster_size)
+__global__ void dsmem_store_kernel(int cluster_size)
 {
   // Only support sending 2 uint32_t for this demo
   CUTE_STATIC_ASSERT(cute::is_same_v<T, uint32_t>);
@@ -135,14 +136,14 @@ __global__ void kernel(int cluster_size)
 
   // Sanity check that mbarrier is properly aligned
   if (elected) {
-    unsigned long long align = (unsigned long long)((uintptr_t)shared_storage.tma_load_mbar & 0xF);
+    unsigned long long align = (unsigned long long)((uintptr_t)shared_storage.mbar & 0xF);
     assert(align == 0);
   }
 
   cute::Tensor sA = make_tensor(make_smem_ptr(shared_storage.smem.begin()), VecLayout{});
   Layout l = sA.layout();
 
-  uint64_t *tma_load_mbar = shared_storage.tma_load_mbar;
+  uint64_t *mbar = shared_storage.mbar;
 
   // Send in ring
   unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
@@ -150,7 +151,7 @@ __global__ void kernel(int cluster_size)
   if (elected)
   {
     // Initialize TMA barrier
-    cute::initialize_barrier(tma_load_mbar[0], /* num_threads */ 1);
+    cute::initialize_barrier(mbar[0], /* num_threads */ 1);
   }
 
   // Ensures all CTAs in the Cluster have initialized
@@ -171,7 +172,7 @@ __global__ void kernel(int cluster_size)
 #endif
 
   // Map remote addresses for mbarrier and smem buffer
-  uint32_t barrier_address = cute::cast_smem_ptr_to_uint(tma_load_mbar);
+  uint32_t barrier_address = cute::cast_smem_ptr_to_uint(mbar);
   uint32_t remote_barrier_address = cute::set_block_rank(barrier_address, dst_rank);
   uint32_t smem_address = cute::cast_smem_ptr_to_uint(shared_storage.smem.begin());
   uint32_t remote_smem_address = cute::set_block_rank(smem_address, dst_rank);
@@ -179,7 +180,7 @@ __global__ void kernel(int cluster_size)
   if (elected)
   {
     // Set transaction bytes to await
-    cute::set_barrier_transaction_bytes(tma_load_mbar[0], kTmaTransactionBytes);
+    cute::set_barrier_transaction_bytes(mbar[0], kTmaTransactionBytes);
     // Send
     store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
@@ -191,7 +192,7 @@ __global__ void kernel(int cluster_size)
  
   // Wait in loop, mbarrier initializes with phase == 0;
   int phase = 0;
-  cute::wait_barrier(tma_load_mbar[0], phase);
+  cute::wait_barrier(mbar[0], phase);
 
   // Print results, cluster rank i should print the previous rank
   for(int i = 0; i < int(size(sA)); i++){
