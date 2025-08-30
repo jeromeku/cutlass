@@ -10,21 +10,9 @@ using namespace cute;
 
 using T = cute::uint32_t;
 constexpr int NUM_ELEMS = 2;
+constexpr int NUM_THREADS = 32;
 constexpr int CLUSTER_SIZE = 4;
-__device__ inline bool should_print()
-{
-  int tx = threadIdx.x;
-  int ty = threadIdx.y;
 
-  if (tx == 0 && ty == 0)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
 #ifndef PRINT_CLUSTER_DELAY_CYCLES
 #define PRINT_CLUSTER_DELAY_CYCLES 20000000ULL
 #endif
@@ -69,34 +57,6 @@ void checkLastCudaError(const char *msg = "CUDA Error")
   {
     std::cerr << msg << ": " << cudaGetErrorString(error) << std::endl;
   }
-  else
-  {
-    std::cout << msg << ": No error detected" << std::endl;
-  }
-}
-
-
-__device__ void print_block_id(const char *msg)
-{
-  int tx = threadIdx.x;
-  int ty = threadIdx.y;
-  int bx = blockIdx.x;
-  int by = blockIdx.y;
-  int cta_rank_in_cluster = cute::block_rank_in_cluster();
-  if (should_print())
-  {
-    printf("BlockId: (%d, %d), Cluster rank: %d :: %s\n", bx, by, cta_rank_in_cluster, msg);
-  }
-}
-
-// Store value to remote shared memory in the cluster
-CUTE_DEVICE
-void store_shared_remote(uint32_t value, uint32_t smem_addr, uint32_t mbarrier_addr, uint32_t dst_cta_rank)
-{
-  uint32_t dsmem_addr = set_block_rank(smem_addr, dst_cta_rank);
-  uint32_t remote_barrier_addr = set_block_rank(mbarrier_addr, dst_cta_rank);
-  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.u32 [%0], %1, [%2];"
-               : : "r"(dsmem_addr), "r"(value), "r"(remote_barrier_addr));
 }
 
 // Store value to remote shared memory in the cluster
@@ -187,25 +147,16 @@ __global__ void dsmem_store_kernel(int cluster_size)
   cute::wait_barrier(mbar[0], phase);
 
   // Print results, cluster rank i should print the previous rank
-  for(int i = 0; i < int(size(sA)); i++){
-    PRINT_CLUSTER(printf("Received sA(%d) %u\n", i, sA(i)));
-  }
+  PRINT_CLUSTER(printf("Received sA: %u %u", sA(0), sA(1)));
+
   __syncthreads();
   cute::cluster_sync();
 }
 
 int main()
 {
-  constexpr dim3 cluster_dims = {4, 1, 1};
-  constexpr int num_blocks = [&]()
-  {
-    return cluster_dims.x * cluster_dims.y * cluster_dims.z;
-  }();
-
-  constexpr int num_threads = 32;
-
   using VecLayout = Layout<Shape<Int<NUM_ELEMS>>>;
-  dim3 dimBlock(num_threads);
+  dim3 dimBlock(NUM_THREADS);
   dim3 dimCluster(CLUSTER_SIZE);
   dim3 dimGrid = dimCluster;
   int smem_size = sizeof(SharedStorage<T, VecLayout>);
