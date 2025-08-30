@@ -30,6 +30,7 @@ template <class ElementType, class SmemLayout>
 struct SharedStorage
 {
   cute::ArrayEngine<ElementType, cute::cosize_v<SmemLayout>> smem;
+  // mbarrier must be 16B aligned
   alignas(16) cute::uint64_t mbar[1];
 };
 
@@ -48,6 +49,8 @@ __global__ void dsmem_store_kernel(int cluster_size)
   bool elect_one_thr = cute::elect_one_sync();
   int warp_idx = cutlass::canonical_warp_idx();
   bool elected = warp_idx == 0 && elect_one_thr;
+
+  // Rank in cluster
   int cta_rank_in_cluster = cute::block_rank_in_cluster();
 
   // Sanity check that mbarrier is properly aligned
@@ -56,18 +59,17 @@ __global__ void dsmem_store_kernel(int cluster_size)
     assert(align == 0);
   }
 
+  // Aliases for smem recv buffer and mbarrier
   cute::Tensor sA = make_tensor(make_smem_ptr(shared_storage.smem.begin()), VecLayout{});
-  Layout l = sA.layout();
-
   uint64_t *mbar = shared_storage.mbar;
 
-  // Send in ring
+  // Send in ring (rank 0 -> rank 1 -> rank2 -> rank3 -> rank0)
   unsigned int dst_rank = (cta_rank_in_cluster + 1) % cluster_size;
   
   if (elected)
   {
-    // Initialize TMA barrier
-    cute::initialize_barrier(mbar[0], /* num_threads */ 1);
+    // Initialize mbarrier, **1** thread arrives
+    cute::initialize_barrier(mbar[0], 1);
   }
 
   // Ensures all CTAs in the Cluster have initialized
@@ -77,7 +79,7 @@ __global__ void dsmem_store_kernel(int cluster_size)
   // Send self cluster rank
   constexpr int num_vals = int(size(sA));
   T vals[num_vals];
-  constexpr int kTmaTransactionBytes = sizeof(T) * num_vals;
+  constexpr int kTransactionBytes = sizeof(T) * num_vals;
   for(int i = 0; i < num_vals; i++){
     vals[i] = cta_rank_in_cluster;
   }
@@ -92,13 +94,13 @@ __global__ void dsmem_store_kernel(int cluster_size)
   if (elected)
   {
     // Set transaction bytes to await
-    cute::set_barrier_transaction_bytes(mbar[0], kTmaTransactionBytes);
-    // Send
+    cute::set_barrier_transaction_bytes(mbar[0], kTransactionBytes);
+    // Send using st.async, no need for TMA given small payload
     store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
   __syncthreads();
  
-  // Wait in loop, mbarrier initializes with phase == 0;
+  // Wait in loop, mbarrier initial state is 0;
   int phase = 0;
   cute::wait_barrier(mbar[0], phase);
 
