@@ -10,7 +10,7 @@ using namespace cute;
 
 using T = cute::uint32_t;
 constexpr int NUM_ELEMS = 2;
-
+constexpr int CLUSTER_SIZE = 4;
 __device__ inline bool should_print()
 {
   int tx = threadIdx.x;
@@ -26,7 +26,7 @@ __device__ inline bool should_print()
   }
 }
 #ifndef PRINT_CLUSTER_DELAY_CYCLES
-#define PRINT_CLUSTER_DELAY_CYCLES 10000000ULL
+#define PRINT_CLUSTER_DELAY_CYCLES 20000000ULL
 #endif
 
 #define PRINT_CLUSTER(expr)                                                                              \
@@ -167,10 +167,6 @@ __global__ void dsmem_store_kernel(int cluster_size)
   }
   uint64_t *payload = reinterpret_cast<uint64_t *>(vals);
 
-  #if defined(DEBUG)
-  PRINT_CLUSTER(printf("Sending to rank %d, payload size: %d", dst_rank, kTmaTransactionBytes));
-#endif
-
   // Map remote addresses for mbarrier and smem buffer
   uint32_t barrier_address = cute::cast_smem_ptr_to_uint(mbar);
   uint32_t remote_barrier_address = cute::set_block_rank(barrier_address, dst_rank);
@@ -185,10 +181,6 @@ __global__ void dsmem_store_kernel(int cluster_size)
     store_shared_remote_u64(payload[0], remote_smem_address, remote_barrier_address, dst_rank);
   }
   __syncthreads();
-
-#if defined(DEBUG)
-  PRINT_CLUSTER(printf("Sending %u to %d\n", vals[0], dst_rank));
-#endif
  
   // Wait in loop, mbarrier initializes with phase == 0;
   int phase = 0;
@@ -211,22 +203,17 @@ int main()
   }();
 
   constexpr int num_threads = 32;
-#if defined(DEBUG)
-  printf("Store remote with %d blocks, %d threads\n", num_blocks, num_threads);
-#endif
 
   using VecLayout = Layout<Shape<Int<NUM_ELEMS>>>;
-  
   dim3 dimBlock(num_threads);
-  constexpr int cluster_size = 4;
-  dim3 dimCluster(cluster_size);
+  dim3 dimCluster(CLUSTER_SIZE);
   dim3 dimGrid = dimCluster;
   int smem_size = sizeof(SharedStorage<T, VecLayout>);
 
-  void *kernel_ptr = (void *)kernel<T, VecLayout>;
+  void *kernel_ptr = (void *)dsmem_store_kernel<T, VecLayout>;
   cutlass::launch_kernel_on_cluster({dimGrid, dimBlock, dimCluster, smem_size},
                                     kernel_ptr,
-                                    cluster_size);
+                                    CLUSTER_SIZE);
 
   checkLastCudaError("After kernel launch");
 
