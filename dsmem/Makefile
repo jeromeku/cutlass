@@ -22,7 +22,7 @@ store_remote: store_remote.cu
 	nvcc ${VERBOSE_FLAG} ${ARCH_FLAGS} ${CXX_FLAGS} ${PROFILE_FLAGS} ${PTXAS_FLAGS} -I${CUDA_ROOT}/include -o $@ $<
 
 ptx_store: ptx_store.cu
-	nvcc ${VERBOSE_FLAG} \
+	nvcc \
 	${ARCH_FLAGS} \
 	-I${CUDA_ROOT}/include \
 	${CXX_FLAGS} \
