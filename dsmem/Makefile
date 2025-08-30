@@ -8,9 +8,9 @@ ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
 
 .PHONY: all clean
 
-all: clean ptx_store
+all: clean dsmem_demo
 
-ptx_store: ptx_store.cu
+dsmem_demo: dsmem_demo.cu
 	nvcc \
 	${ARCH_FLAGS} \
 	${CXX_FLAGS} \
@@ -18,4 +18,4 @@ ptx_store: ptx_store.cu
 	-o $@ $<
 
 clean:
-	rm -rf ptx_store
+	rm -rf dsmem_demo
