@@ -130,7 +130,7 @@ static at::Tensor _grouped_mm(
   std::cout << "A: " << mat_a.sizes() << " " << mat_a.strides() << "\n";
   std::cout << "B: " << mat_b.sizes() << " " << mat_b.strides() << "\n";
   std::cout << "Created tensor out with: " << out.sizes() << " " << out.strides() << " " << out.scalar_type() << "\n";
-  // bf16bf16_grouped_mm(mat_a, mat_b, offs, bias, out);
+  bf16bf16_grouped_mm(mat_a, mat_b, offs, bias, out);
   return out;
 }
 
