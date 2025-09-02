@@ -1,0 +1,7 @@
+Using Python 3.12.11 environment at: /home/jeromeku/cutlass/.cutlass-env
+Resolved 1 package in 5.43s
+   Building groupedmm-ext @ file:///home/jeromeku/cutlass/grouped_gemm_ext
+      Built groupedmm-ext @ file:///home/jeromeku/cutlass/grouped_gemm_ext
+Prepared 1 package in 1m 12s
+Installed 1 package in 0.93ms
+ + groupedmm-ext==0.1.0 (from file:///home/jeromeku/cutlass/grouped_gemm_ext)
