@@ -62,20 +62,20 @@ def test_grouped_gemm_2d_3d(a_row_major=True, b_row_major=True, strided=False):
 
         f = torch.ops.groupedmm_ext._grouped_mm
         out = f(a, b.transpose(-2, -1), offs=offs)
-
-        # gO = torch.rand_like(out)
-        # # if not check_zero_size:
-        # #     out.backward(gO)
-        # offs_cpu = offs.cpu()
-        # alist, agradlist, gOlist, outlist = [], [], [], []
-        # bgradlist = [None] * n_groups if check_zero_size else b.grad
-        # start = 0
-        # for i in range(n_groups):
-        #     alist.append(a[start:offs_cpu[i]])
-        #     agradlist.append(None)# if check_zero_size else a.grad[start:offs_cpu[i]])
-        #     outlist.append(out[start:offs_cpu[i]])
-        #     gOlist.append(gO[start:offs_cpu[i]])
-        #     start = offs_cpu[i]
-        # breakpoint()
-        # grouped_mm_helper(alist, b, gOlist, agradlist, bgradlist, outlist)
+        print(f"{a.shape=}, {b.shape=}, {out.shape=}")
+        gO = torch.rand_like(out)
+        # if not check_zero_size:
+        #     out.backward(gO)
+        offs_cpu = offs.cpu()
+        alist, agradlist, gOlist, outlist = [], [], [], []
+        bgradlist = [None] * n_groups if check_zero_size else b.grad
+        start = 0
+        for i in range(n_groups):
+            alist.append(a[start:offs_cpu[i]])
+            agradlist.append(None)# if check_zero_size else a.grad[start:offs_cpu[i]])
+            outlist.append(out[start:offs_cpu[i]])
+            gOlist.append(gO[start:offs_cpu[i]])
+            start = offs_cpu[i]
+        breakpoint()
+        grouped_mm_helper(alist, b, gOlist, agradlist, bgradlist, outlist)
 test_grouped_gemm_2d_3d()
