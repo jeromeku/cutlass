@@ -13,7 +13,9 @@ Allocated out size: [64, 32]
 A: [64, 64] [64, 1]
 B: [4, 64, 32] [2048, 1, 64]
 Created tensor out with: [64, 32] [32, 1] BFloat16
+Calling bf16 kernel with shapes: [64, 64], [4, 64, 32], [64, 32]
 Allocated out size: [64, 32]
 A: [64, 64] [64, 1]
 B: [4, 64, 32] [2048, 1, 64]
 Created tensor out with: [64, 32] [32, 1] BFloat16
+Calling bf16 kernel with shapes: [64, 64], [4, 64, 32], [64, 32]
