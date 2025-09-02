@@ -1,17 +1,17 @@
 import torch
 from groupedmm_ext.jit_build import build_groupedmm_ext, grouped_mm
 CUTLASS_PATH = "/home/jeromeku/cutlass"
-# One-time JIT compile (cached thereafter)
+
 ext = build_groupedmm_ext(
     cutlass_path=CUTLASS_PATH,  # or set CUTLASS_PATH env var
     verbose=True
 )
 
 # Call allocating variant
-G, M, K, N = 8, 64, 512, 2048
-A = torch.randn(G, M, K, device="cuda", dtype=torch.bfloat16).contiguous()
-B = torch.randn(G, K, N, device="cuda", dtype=torch.bfloat16).contiguous()
-Y = torch.ops.groupedmm_ext._grouped_mm(A, B)  # or grouped_mm(A, B)
+# G, M, K, N = 8, 64, 512, 2048
+# A = torch.randn(G, M, K, device="cuda", dtype=torch.bfloat16).contiguous()
+# B = torch.randn(G, K, N, device="cuda", dtype=torch.bfloat16).contiguous()
+# Y = torch.ops.groupedmm_ext._grouped_mm(A, B)  # or grouped_mm(A, B)
 
 # # Preallocated variant (exactly the same underlying kernel)
 # out = torch.empty(G*M, N, device="cuda", dtype=torch.bfloat16)
@@ -62,19 +62,20 @@ def test_grouped_gemm_2d_3d(a_row_major=True, b_row_major=True, strided=False):
 
         f = torch.ops.groupedmm_ext._grouped_mm
         out = f(a, b.transpose(-2, -1), offs=offs)
-        gO = torch.rand_like(out)
-        # if not check_zero_size:
-        #     out.backward(gO)
-        offs_cpu = offs.cpu()
-        alist, agradlist, gOlist, outlist = [], [], [], []
-        bgradlist = [None] * n_groups if check_zero_size else b.grad
-        start = 0
-        for i in range(n_groups):
-            alist.append(a[start:offs_cpu[i]])
-            agradlist.append(None)# if check_zero_size else a.grad[start:offs_cpu[i]])
-            outlist.append(out[start:offs_cpu[i]])
-            gOlist.append(gO[start:offs_cpu[i]])
-            start = offs_cpu[i]
-        breakpoint()
-        grouped_mm_helper(alist, b, gOlist, agradlist, bgradlist, outlist)
+
+        # gO = torch.rand_like(out)
+        # # if not check_zero_size:
+        # #     out.backward(gO)
+        # offs_cpu = offs.cpu()
+        # alist, agradlist, gOlist, outlist = [], [], [], []
+        # bgradlist = [None] * n_groups if check_zero_size else b.grad
+        # start = 0
+        # for i in range(n_groups):
+        #     alist.append(a[start:offs_cpu[i]])
+        #     agradlist.append(None)# if check_zero_size else a.grad[start:offs_cpu[i]])
+        #     outlist.append(out[start:offs_cpu[i]])
+        #     gOlist.append(gO[start:offs_cpu[i]])
+        #     start = offs_cpu[i]
+        # breakpoint()
+        # grouped_mm_helper(alist, b, gOlist, agradlist, bgradlist, outlist)
 test_grouped_gemm_2d_3d()

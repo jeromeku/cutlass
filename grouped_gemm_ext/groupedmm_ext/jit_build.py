@@ -3,11 +3,7 @@ import os
 import torch
 from torch.utils.cpp_extension import load
 DEFAULT_CUTLASS_PATH = "/home/jeromeku/cutlass"
-
-from pathlib import Path
-import os
-import torch
-from torch.utils.cpp_extension import load
+os.environ["TORCH_CUDA_ARCH_LIST"] = "9.0"
 
 def build_groupedmm_ext(
     name="groupedmm_ext",
