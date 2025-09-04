@@ -1,0 +1,30 @@
+{
+  "version": 4,
+  "configurations": [
+    {
+      "name": "Linux (CUDA Hopper)",
+      "intelliSenseMode": "linux-gcc-x64",
+      "compilerPath": "/usr/bin/g++",
+      "cStandard": "gnu11",
+      "cppStandard": "gnu++17",
+      "includePath": [
+        "${workspaceFolder}/../include",
+        "${workspaceFolder}/../tools/util/include",
+        "${workspaceFolder}/../examples/common",
+        "/usr/local/cuda/include"
+      ],
+      "defines": [
+        "__CUDACC__",
+        "__CUDACC_VER_MAJOR__=12",
+        "__CUDACC_VER_MINOR__=3",
+        "__CUDA_ARCH__=900",
+        "__CUDA_ARCH_FEAT_SM90_ALL",
+        "CUTLASS_ARCH_MMA_SM90_SUPPORTED=1",
+        "CUDA_12_0_SM90_FEATURES_SUPPORTED",
+        "_LIBCUDACXX_STD_VER=12",
+        "__INTELLISENSE__"
+      ]
+    }
+  ]
+}
+

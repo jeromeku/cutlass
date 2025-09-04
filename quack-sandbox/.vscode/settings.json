@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "*.cu": "cuda-cpp",
+    "*.cuh": "cuda-cpp"
+  },
+  "C_Cpp.errorSquiggles": "enabled",
+  "C_Cpp.formatting": "vcFormat",
+  "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+  "C_Cpp.default.cppStandard": "gnu++17"
+}
+
