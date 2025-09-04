@@ -1,0 +1,3 @@
+[submodule "thirdparty/quack"]
+	path = thirdparty/quack
+	url = https://github.com/jeromeku/quack

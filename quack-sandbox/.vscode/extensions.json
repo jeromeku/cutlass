@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "ms-vscode.cpptools",
+    "nvidia.nsight-vscode-edition",
+    "llvm-vs-code-extensions.vscode-clangd"
+  ]
+}
+

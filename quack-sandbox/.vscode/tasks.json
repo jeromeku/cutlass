@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build active CUDA file (sm_90a)",
+      "type": "shell",
+      "command": "/usr/local/cuda/bin/nvcc",
+      "args": [
+        "-std=c++17",
+        "--gpu-architecture=sm_90a",
+        "-I${workspaceFolder}/../include",
+        "-I${workspaceFolder}/../tools/util/include",
+        "-I${workspaceFolder}/../examples/common",
+        "${file}",
+        "-o",
+        "${fileDirname}/${fileBasenameNoExtension}.out"
+      ],
+      "problemMatcher": "$gcc",
+      "group": { "kind": "build", "isDefault": true }
+    }
+  ]
+}
+
