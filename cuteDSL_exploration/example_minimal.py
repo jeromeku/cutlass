@@ -1,10 +1,10 @@
-from cutlass_package import cute
+from cutlass import cute
 
 
 @cute.kernel
 def _empty():
     # Minimal device kernel (no body). IR still emits a gpu.func and a launch site.
-    return
+    cute.printf("hello")
 
 
 @cute.jit
