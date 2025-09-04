@@ -3,7 +3,7 @@
 import cutlass_logging
 
 cutlass_logging.set_ir_dump(keep_ir=True)
-cutlass_logging.set_logging(log_to_file="cutlass_logs.txt")
+cutlass_logging.set_logging(log_to_file="cutlass_logs.txt", log_to_console=True)
 
 import math
 from typing import Optional, Type
@@ -19,7 +19,7 @@ from cutlass.base_dsl.jit_executor import JitExecutor
 import quack.utils as utils
 from quack.reduce import row_reduce, online_softmax_reduce
 from quack.reduction_base import ReductionBase, torch2cute_dtype_map
-
+from cutlass.base_dsl.utils.logger import setup_log
 class CrossEntropy(ReductionBase):
     def __init__(self, dtype: Type[cutlass.Numeric], N: int, online_softmax: bool = True):
         # 2 stages: 1 for max, 1 for sum
