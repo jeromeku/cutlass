@@ -43,7 +43,7 @@ def _ensure_dir(path: str):
 
 def _walk_gpu_binaries_and_extract(module, outdir: str) -> Tuple[list, list]:
     """Walks gpu.binary ops, writes .cubin files, returns (symbols, filepaths)."""
-    from cutlass_package._mlir import ir
+    from cutlass._mlir import ir
 
     def ishex(b: int) -> bool:
         return (0x30 <= b <= 0x39) or (0x61 <= b <= 0x66) or (0x41 <= b <= 0x46)
@@ -113,13 +113,13 @@ def main():
     args = ap.parse_args()
 
     # Import runtime pieces we’ll need
-    from cutlass_package._mlir import ir, passmanager
-    from cutlass_package._mlir.dialects import func as func_d
-    from cutlass_package.base_dsl.dsl import BaseDSL, DSLCallable
-    from cutlass_package.cutlass_dsl import cutlass as cutlass_mod
-    from cutlass_package.cutlass_dsl.cutlass import CutlassBaseDSL
-    from cutlass_package.base_dsl import compiler as base_compiler
-    from cutlass_package._mlir import execution_engine as ee, passmanager as pm_mod
+    from cutlass._mlir import ir, passmanager
+    from cutlass._mlir.dialects import func as func_d
+    from cutlass.base_dsl.dsl import BaseDSL, DSLCallable
+    from cutlass.cutlass_dsl import cutlass as cutlass_mod
+    from cutlass.cutlass_dsl.cutlass import CutlassBaseDSL
+    from cutlass.base_dsl import compiler as base_compiler
+    from cutlass._mlir import execution_engine as ee, passmanager as pm_mod
 
     # Build a safe CuTeDSL replacement that avoids CuTeDSL.__init__ breakpoint
     class SafeCuTeDSL(CutlassBaseDSL):
@@ -133,10 +133,10 @@ def main():
                 preprocess=True,
             )
 
-    safe_dsl = SafeCuTeDSL()
-    # Monkey-patch CuTeDSL._get_dsl to return our safe instance before importing the user module
-    cutlass_mod.CuTeDSL._get_dsl = classmethod(lambda cls: safe_dsl)  # type: ignore
-
+    # safe_dsl = SafeCuTeDSL()
+    # # Monkey-patch CuTeDSL._get_dsl to return our safe instance before importing the user module
+    # cutlass_mod.CuTeDSL._get_dsl = classmethod(lambda cls: safe_dsl)  # type: ignore
+    
     if args.module:
         mod = importlib.import_module(args.module)
     else:
@@ -160,7 +160,7 @@ def main():
     kw_args = json.loads(args.kwargs)
 
     # Create DSL instance and compute canonical call signature
-    dsl = safe_dsl
+    dsl = cutlass_mod.CuTeDSL()
     dsl.funcBody = f_body
     sig = dsl._check_arg_count(*pos_args, **kw_args)
     can_args, can_kwargs = dsl._canonicalize_args(sig, *pos_args, **kw_args)
