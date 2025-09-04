@@ -304,6 +304,7 @@ class BaseDSL:
         a logger with settings from the environment. If environment warnings
         are detected, they are escalated to errors to ensure strict handling.
         """
+        breakpoint()
         # Enforcing initialization of instance variables
         if not all([name, compiler_provider, pass_sm_arch_name]):
             raise DSLRuntimeError(

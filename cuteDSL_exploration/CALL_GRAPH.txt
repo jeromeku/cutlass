@@ -1,0 +1,48 @@
+Call Graphs (simplified, key nodes only)
+
+@cute.jit decorated function F(...)
+
+F (user code)
+  -> cutlass_package/cute/__init__.py :: jit = _dsl.CuTeDSL.jit
+    -> CuTeDSL (cutlass_package/cutlass_dsl/cutlass.py) instantiates Compiler(passmanager, execution_engine)
+    -> BaseDSL.jit(...) (cutlass_package/base_dsl/dsl.py:485–493)
+       -> BaseDSL.jit_runner(main_dsl._func, frame) (457–483)
+          -> jit_wrapper(*args, **kwargs) (473–477)
+             -> BaseDSL._preprocess_and_execute(func) (436–460)
+                -> DSLPreprocessor.transform(...) (ast_preprocessor.py:374–387) [optional]
+                -> preprocessor.exec(...) to materialize function
+             -> main_dsl._func(DSLCallable(func_ptr), *args, **kwargs) (dsl.py:1311–1360)
+                -> generate_mlir(...) (1217–1266)
+                   -> generate_original_ir(...) (1083–1146)
+                      -> _build_gpu_module(...) [CuTeDSL] (cutlass_dsl/cutlass.py:150–157)
+                      -> func.func @<mangled> with llvm.emit_c_interface
+                   -> get_module_hash(), build_module()
+                   -> compile_and_cache(...)
+                      -> compile_and_jit(...) (dsl.py:951–982)
+                         -> Compiler.compile(...) (base_dsl/compiler.py:135–166)
+                           -> PassManager.parse(pipeline).run(module)
+                         -> Compiler.jit(...) -> ExecutionEngine(module)
+                      -> engine.lookup(<mangled>) -> capi_func
+                      -> JitExecutor(engine, capi_func, module, args_spec, ...)
+                         -> update_jit_cuda_modules(kernel_symbols) (jit_executor.py:260–297)
+                            -> walk_module_and_get_cubin_data(...)
+                               -> cuda.load_cubin_module_data(...), cuda.get_kernel_function(...)
+                -> JitExecutor.run_compiled_program(exe_args) (jit_executor.py:244–257)
+                   -> pack void** and call capi_func
+
+@cute.kernel decorated kernel K(...)
+
+K (user kernel body)
+  -> cutlass_package/cute/__init__.py :: kernel = _dsl.CuTeDSL.kernel
+    -> BaseDSL.kernel(...) (495–504) -> jit_runner(main_dsl._kernel_helper, frame)
+       -> jit_wrapper -> CuTeDSL._kernel_helper(funcBody, ...) (cutlass_dsl/cutlass.py:232–277)
+          -> returns KernelLauncher(self, _CutlassIrKernelGenHelper, funcBody, ...)
+             -> KernelLauncher.launch(...): records frame and LaunchConfig
+                -> BaseDSL.kernel_launcher(...)(funcBody) (dsl.py:1559–1712)
+                   -> within self._enter_gpu_module():
+                      -> helper.generate_func_op(...)
+                      -> emit user body IR
+                   -> emit gpu.launch_func call‑site referencing @kernels::<kernel_sym>
+                   -> returns (kernel_func_ret, launch_op_ret)
+             -> host function (built via @cute.jit) continues; compiled as in the first graph
+

@@ -264,6 +264,7 @@ class EnvironmentVarManager:
     """
 
     def __init__(self, prefix="DSL"):
+        breakpoint()
         self.prefix = prefix  # change if needed
 
         # Printing options
