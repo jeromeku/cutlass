@@ -1,0 +1,98 @@
+host_tensor_A:	ptr[16b](0x7a5d782bf010) o (512,256):(256,_1)
+host_tensor_B:	ptr[16b](0x7a5d77b7f010) o (1024,256):(256,_1)
+host_tensor_C:	ptr[32b](0x7a5d71783010) o (512,1024):(1024,_1)
+Running for problem shape (MxNxK): 512x1024x256
+TiledMMA
+  ThrLayoutVMNK:  (_1,_1,_1,_1):(_0,_0,_0,_0)
+  PermutationMNK: (_,_,_)
+MMA_Atom
+  ThrID:      _1:_0
+  Shape_MNK:  (_128,_256,_16)
+  LayoutA_TV: (_1,(_128,_16)):(_0,(_1,_128))
+  LayoutB_TV: (_1,(_256,_16)):(_0,(_1,_256))
+  LayoutC_TV: (_1,(_128,_256)):(_0,(_1,_128))
+mma_shape_A:	((_128,_16),_1,_4)
+mma_shape_B:	((_256,_16),_1,_4)
+sA_layout:	Sw<3,4,3> o smem_ptr[16b](unset) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+sB_layout:	Sw<3,4,3> o smem_ptr[16b](unset) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
+tma_atom_A:	Copy_Atom
+  ThrID:        _1:_0
+  ValLayoutSrc: (_1,_8192):(_0,_1)
+  ValLayoutDst: (_1,_8192):(_0,_1)
+  ValLayoutRef: (_1,_8192):(_0,_1)
+  ValueType:    16b
+
+mA_tma:	ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
+tma_atom_B:	Copy_Atom
+  ThrID:        _1:_0
+  ValLayoutSrc: (_1,_16384):(_0,_1)
+  ValLayoutDst: (_1,_16384):(_0,_1)
+  ValLayoutRef: (_1,_16384):(_0,_1)
+  ValueType:    16b
+
+Grid launched: 4, 4, 1
+Cluster launched: 4, 4, 1
+/home/jerome/cutlass/include/cutlass/cluster_launch.hpp:177  ClusterLauncher: Setting ClusterDims = (4, 4, 1)
+
+/home/jerome/cutlass/include/cutlass/cluster_launch.hpp:127  Checking previous error state before calling cudaFuncSetAttribute
+/home/jerome/cutlass/include/cutlass/cluster_launch.hpp:137  Calling cudaFuncSetAttribute
+/home/jerome/cutlass/include/cutlass/cluster_launch.hpp:241  ClusterLauncher: Launching GridDims = (4, 4, 1), And ClusterDims = (4, 4, 1)
+
+cluster_layout_vmnk:	((_1),_4,_4,_1):((_0),_1,_4,_0)
+mma_coord_vmnk:	(_0,1,0,_)
+mA:	ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
+mB:	ArithTuple(_0,_0) o (1024,256):(_1@1,_1@0)
+mC:	gmem_ptr[32b](0x7a5b37000000) o (512,1024):(1024,_1)
+mD:	gmem_ptr[32b](0x7a5b55000000) o (512,1024):(1024,_1)
+gA:	ArithTuple(_0,128) o (_128,_64,4):(_1@1,_1@0,_64@0)
+gB:	ArithTuple(_0,0) o (_256,_64,4):(_1@1,_1@0,_64@0)
+gC:	gmem_ptr[32b](0x7a5b37080000) o (_128,_256):(1024,_1)
+gD:	gmem_ptr[32b](0x7a5b55080000) o (_128,_256):(1024,_1)
+mma_v:	_0
+cta_mma:	ThrMMA
+  Thr VMNK: (_0,_0,_0,_0)
+TiledMMA
+  ThrLayoutVMNK:  (_1,_1,_1,_1):(_0,_0,_0,_0)
+  PermutationMNK: (_,_,_)
+MMA_Atom
+  ThrID:      _1:_0
+  Shape_MNK:  (_128,_256,_16)
+  LayoutA_TV: (_1,(_128,_16)):(_0,(_1,_128))
+  LayoutB_TV: (_1,(_256,_16)):(_0,(_1,_256))
+  LayoutC_TV: (_1,(_128,_256)):(_0,(_1,_128))
+
+tCgA:	ArithTuple(_0,128) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
+tCgB:	ArithTuple(_0,0) o ((_256,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
+tCgC:	gmem_ptr[32b](0x7a5b37080000) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCgD:	gmem_ptr[32b](0x7a5b55080000) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCsA:	Sw<3,4,3>_smem_ptr[16b](0x7a5c01000400) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+tCsB:	Sw<3,4,3>_smem_ptr[16b](0x7a5c01004400) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
+tCrA:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
+tCrA SMemDescriptor:	UMMA::SmemDescriptor: 0x4000404000010040
+  start_addr :  0x0040
+  leading_off:  0x0001 (1)
+  stride_off :  0x0040 (64)
+  base_offset:  0x0
+  lbo_mode   :  0x0
+  layout_type:  0x2 (SWIZZLE_128B)
+  version    :  0x1
+
+tCrB:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
+tCtAcc:	tmem_[32b](0x0000.0000) o ((_128,_256),_1,_1):((_65536,_1),_0,_0)
+tAgA:	ArithTuple(0,128) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
+tAsA:	Sw<3,4,3>_smem_ptr[16b](0x7a5c01000400) o ((_8192,_1)):((_1,_0))
+tBgB:	ArithTuple(0,64) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
+tBsB:	Sw<3,4,3>_smem_ptr[16b](0x7a5c01006400) o ((_16384,_1)):((_1,_0))
+tma_transaction_bytes: 49152
+tma_mcast_mask_a: 2222
+tma_mcast_mask_b: f
+mma_mcast_mask_c: 222f
+Matrix A: 512x256 of half_t
+Matrix B: 1024x256 of half_t
+Matrix C: 512x1024 of float
+Infinity norm of A: 1.520000e+02
+Infinity norm of B: 1.540000e+02
+Infinity norm of C: 7.220000e+03
+Infinity norm of (C - C_ref): 0.000000e+00
+Relative error: 0.000000e+00
+Execution is successful.

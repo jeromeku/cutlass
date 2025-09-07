@@ -179,8 +179,9 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor gB = local_tile(mB, mma_tiler, mma_coord, Step< X,_1,_1>{});  // (MmaTile_N, MmaTile_K, Tiles_K)
   Tensor gC = local_tile(mC, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
   Tensor gD = local_tile(mD, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
+  bool should_print = threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 1;
 
-  if (thread0()) {
+  if (should_print) {
     print("cluster_layout_vmnk:\t"); print(cluster_layout_vmnk); printf("\n");
     print("mma_coord_vmnk:\t"); print(mma_coord_vmnk); print("\n");   // mA:   ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
     print("mA:\t"); print(mA); print("\n");   // mA:   ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
@@ -215,7 +216,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor tCgC = cta_mma.partition_C(gC);         // (MmaC, NumMma_M, NumMma_N)
   Tensor tCgD = cta_mma.partition_C(gD);         // (MmaC, NumMma_M, NumMma_N)
 
-  if (thread0()) {
+  if (should_print) {
     print("mma_v:\t"); print(mma_v); print("\n");  // tCgA:   ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
     print("cta_mma:\t"); print(cta_mma); print("\n");  // tCgA:   ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
     print("tCgA:\t"); print(tCgA); print("\n");  // tCgA:   ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
@@ -223,7 +224,6 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
     print("tCgC:\t"); print(tCgC); print("\n");  // tCgC:   gmem_ptr[32b](GMEM_ADDR_C + offset_for_mma_tile + offset_for_mma) o ((_128,_256),_1,_1):((256,_1),_0,_0)
     print("tCgD:\t"); print(tCgD); print("\n");  // tCgD:   gmem_ptr[32b](GMEM_ADDR_D + offset_for_mma_tile + offset_for_mma) o ((_128,_256),_1,_1):((256,_1),_0,_0)
   } __syncthreads();
-
   // MMA Fragment Allocation
   // We allocate "fragments" which are SMEM descriptors that serve as inputs to cute::gemm operations.
   // For tcgen05.mma operations:
@@ -250,11 +250,12 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   __syncthreads(); // Wait for all threads until warp0 allocates TMEM
   tCtAcc.data() = shared_storage.tmem_base_ptr;
 
-  if (thread0()) {
+
+  if (should_print) {
     print("tCsA:\t"); print(tCsA); print("\n");     // tCsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
     print("tCsB:\t"); print(tCsB); print("\n");     // tCsB:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_B) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
     print("tCrA:\t"); print(tCrA); print("\n");     // tCrA:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
-    print("tCrA:\t"); print(tCrA[0]); print("\n");     // tCrA:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
+    print("tCrA SMemDescriptor:\t"); print(tCrA[0]); print("\n");     // tCrA:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
     print("tCrB:\t"); print(tCrB); print("\n");     // tCrB:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
     print("tCtAcc:\t"); print(tCtAcc); print("\n"); // tCtAcc: tmem_[32b](TMEM_ADDR) o ((_128,_256),_1,_1):((_65536,_1),_0,_0)
   } __syncthreads();
@@ -312,8 +313,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   // Calculate total bytes that TMA will transfer each tile to track completion
   int tma_transaction_bytes = sizeof(make_tensor_like(tAsA))
                             + sizeof(make_tensor_like(tBsB));
-
-  if (thread0()) {
+  if (should_print) {
     print("tAgA:\t"); print(tAgA); print("\n");  // tAgA:   ArithTuple(_0,0) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
     print("tAsA:\t"); print(tAsA); print("\n");  // tAsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_8192,_1)):((_1,_0))
     print("tBgB:\t"); print(tBgB); print("\n");  // tBgB:   ArithTuple(_0,0) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
@@ -323,6 +323,16 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
     printf("tma_mcast_mask_b: %x\n", tma_mcast_mask_b);
     printf("mma_mcast_mask_c: %x\n", mma_mcast_mask_c);
   } __syncthreads();
+  // if (threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 1 && blockIdx.y == 0) {
+  //   print("tAgA:\t"); print(tAgA); print("\n");  // tAgA:   ArithTuple(_0,0) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
+  //   print("tAsA:\t"); print(tAsA); print("\n");  // tAsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_8192,_1)):((_1,_0))
+  //   print("tBgB:\t"); print(tBgB); print("\n");  // tBgB:   ArithTuple(_0,0) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
+  //   print("tBsB:\t"); print(tBsB); print("\n");  // tBsB:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_B) o ((_16384,_1)):((_1,_0))
+  //   printf("tma_transaction_bytes: %d\n", tma_transaction_bytes);
+  //   printf("tma_mcast_mask_a: %x\n", tma_mcast_mask_a);
+  //   printf("tma_mcast_mask_b: %x\n", tma_mcast_mask_b);
+  //   printf("mma_mcast_mask_c: %x\n", mma_mcast_mask_c);
+  // } __syncthreads();
 
   // Barrier Initialization
   // Barriers in SMEM initialized by a single thread.
