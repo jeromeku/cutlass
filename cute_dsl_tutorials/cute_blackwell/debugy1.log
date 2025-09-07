@@ -1,6 +1,6 @@
-host_tensor_A:	ptr[16b](0x740063eae010) o (512,256):(256,_1)
-host_tensor_B:	ptr[16b](0x74006377f010) o (1024,256):(256,_1)
-host_tensor_C:	ptr[32b](0x74005d383010) o (512,1024):(1024,_1)
+host_tensor_A:	ptr[16b](0x72373307f010) o (512,256):(256,_1)
+host_tensor_B:	ptr[16b](0x723732cde010) o (1024,256):(256,_1)
+host_tensor_C:	ptr[32b](0x72372c583010) o (512,1024):(1024,_1)
 Running for problem shape (MxNxK): 512x1024x256
 TiledMMA
   ThrLayoutVMNK:  (_1,_1,_1,_1):(_0,_0,_0,_0)
@@ -42,12 +42,12 @@ cluster_layout_vmnk:	((_1),_4,_4,_1):((_0),_1,_4,_0)
 mma_coord_vmnk:	(_0,0,1,_)
 mA:	ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
 mB:	ArithTuple(_0,_0) o (1024,256):(_1@1,_1@0)
-mC:	gmem_ptr[32b](0x73fe23000000) o (512,1024):(1024,_1)
-mD:	gmem_ptr[32b](0x73fe41000000) o (512,1024):(1024,_1)
+mC:	gmem_ptr[32b](0x7234f3000000) o (512,1024):(1024,_1)
+mD:	gmem_ptr[32b](0x723511000000) o (512,1024):(1024,_1)
 gA:	ArithTuple(_0,0) o (_128,_64,4):(_1@1,_1@0,_64@0)
 gB:	ArithTuple(_0,256) o (_256,_64,4):(_1@1,_1@0,_64@0)
-gC:	gmem_ptr[32b](0x73fe23000400) o (_128,_256):(1024,_1)
-gD:	gmem_ptr[32b](0x73fe41000400) o (_128,_256):(1024,_1)
+gC:	gmem_ptr[32b](0x7234f3000400) o (_128,_256):(1024,_1)
+gD:	gmem_ptr[32b](0x723511000400) o (_128,_256):(1024,_1)
 mma_v:	_0
 cta_mma:	ThrMMA
   Thr VMNK: (_0,_0,_0,_0)
@@ -63,10 +63,10 @@ MMA_Atom
 
 tCgA:	ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
 tCgB:	ArithTuple(_0,256) o ((_256,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
-tCgC:	gmem_ptr[32b](0x73fe23000400) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
-tCgD:	gmem_ptr[32b](0x73fe41000400) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
-tCsA:	Sw<3,4,3>_smem_ptr[16b](0x73ff04000400) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
-tCsB:	Sw<3,4,3>_smem_ptr[16b](0x73ff04004400) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
+tCgC:	gmem_ptr[32b](0x7234f3000400) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCgD:	gmem_ptr[32b](0x723511000400) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCsA:	Sw<3,4,3>_smem_ptr[16b](0x723604000400) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+tCsB:	Sw<3,4,3>_smem_ptr[16b](0x723604004400) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
 tCrA:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
 tCrA SMemDescriptor:	UMMA::SmemDescriptor: 0x4000404000010040
   start_addr :  0x0040
@@ -79,10 +79,11 @@ tCrA SMemDescriptor:	UMMA::SmemDescriptor: 0x4000404000010040
 
 tCrB:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
 tCtAcc:	tmem_[32b](0x0000.0000) o ((_128,_256),_1,_1):((_65536,_1),_0,_0)
+Block Coord: 0, 1, Cluster Rank: 4
 tAgA:	ArithTuple(0,32) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
-tAsA:	Sw<3,4,3>_smem_ptr[16b](0x73ff04001400) o ((_8192,_1)):((_1,_0))
+tAsA:	Sw<3,4,3>_smem_ptr[16b](0x723604001400) o ((_8192,_1)):((_1,_0))
 tBgB:	ArithTuple(0,256) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
-tBsB:	Sw<3,4,3>_smem_ptr[16b](0x73ff04004400) o ((_16384,_1)):((_1,_0))
+tBsB:	Sw<3,4,3>_smem_ptr[16b](0x723604004400) o ((_16384,_1)):((_1,_0))
 tma_transaction_bytes: 49152
 tma_mcast_mask_a: 1111
 tma_mcast_mask_b: f0

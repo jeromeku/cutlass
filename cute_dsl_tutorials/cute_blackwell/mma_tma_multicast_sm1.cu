@@ -179,7 +179,10 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor gB = local_tile(mB, mma_tiler, mma_coord, Step< X,_1,_1>{});  // (MmaTile_N, MmaTile_K, Tiles_K)
   Tensor gC = local_tile(mC, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
   Tensor gD = local_tile(mD, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
-  bool should_print = threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 1;
+  constexpr int BLOCK_COORD_X = 1;
+  constexpr int BLOCK_COORD_Y = 0;
+  bool should_print = threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == BLOCK_COORD_X && blockIdx.y == BLOCK_COORD_Y;
+  int my_cluster_rank = block_rank_in_cluster();
 
   if (should_print) {
     print("cluster_layout_vmnk:\t"); print(cluster_layout_vmnk); printf("\n");
@@ -287,6 +290,15 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   // tma_multicast_mask_B = 0x0F00
   // mma_multicast_mask_C = 0x2F22
 
+  // NOTE: block dim y maps to MMA N, block dim x map to MMA M
+  // printing blockIdx (0, 1) shows cluster slicing tAgA; e.g. blockIdx.y == 1 => (0, 32) since 128 // 4 == 32
+  // printing blockIdx (1, 0) shows cluster slicing along tBgB; e.g., blockIdx.x == 1 => (0, 64) since 256 // 4 == 64
+  // for blockIdx (0, 1), we also see a step size of 128 along M, which matches the full step needed for the next CTA tile along M
+  // whereas when moving along N, we step increments of 128 // 4 = 32.
+  // TLDR:
+  // - step along M -> B: CTA_TILE_N // CLUSTER_SIZE_M, A: full CTA tile M step increments
+  // - step along N -> A: CTA_TILE_M // CLUSTER_SIZE_N, B: full CTA_TILE_N
+  
   // Construct the CTA-in-Cluster coordinate for multicasting
   auto cta_in_cluster_coord_vmnk = cluster_layout_vmnk.get_flat_coord(int(cute::block_rank_in_cluster()));
 
@@ -314,6 +326,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   int tma_transaction_bytes = sizeof(make_tensor_like(tAsA))
                             + sizeof(make_tensor_like(tBsB));
   if (should_print) {
+    printf("Block Coord: %d, %d, Cluster Rank: %d\n", blockIdx.x, blockIdx.y, my_cluster_rank);
     print("tAgA:\t"); print(tAgA); print("\n");  // tAgA:   ArithTuple(_0,0) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
     print("tAsA:\t"); print(tAsA); print("\n");  // tAsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_8192,_1)):((_1,_0))
     print("tBgB:\t"); print(tBgB); print("\n");  // tBgB:   ArithTuple(_0,0) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
