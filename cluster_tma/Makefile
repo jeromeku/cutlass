@@ -3,7 +3,7 @@
 # The cutlass repo is in the external directory: ../external/cutlass/include
 
 # Set the CUTLASS_REPO_PATH to the path of the cutlass repo
-CUTLASS_REPO_PATH = $(dir $(CURDIR))
+CUTLASS_REPO_PATH = /home/jerome/cutlass
 CUTLASS_HEADERS = ${CUTLASS_REPO_PATH}/include 
 CUTLASS_TOOL_HEADERS = ${CUTLASS_REPO_PATH}/tools/util/include
 CUTLASS_TEST_HEADERS = ${CUTLASS_REPO_PATH}/test/unit/common
@@ -22,10 +22,13 @@ TMA_DEBUG_FLAG=-DPRINT_TMA_DESCRIPTOR
 all: clean tma_multicast_sm100
 
 tma_multicast_sm100: tma_multicast_sm100.cu
-	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAG} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -DCUTLASS_ARCH_MMA_SM100_SUPPORTED -o $@ $<
+	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAGS} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -DCUTLASS_ARCH_MMA_SM100_SUPPORTED -o $@ $<
 
 multicast: multicast.cu
-	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAG} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -o $@ $<
+	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAGS} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -o $@ $<
+
+cute_tile: cute_tile.cu
+	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAGS} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -o $@ $<
 
 clean:
 	rm -rf multicast
