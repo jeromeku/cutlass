@@ -99,15 +99,19 @@ def elementwise_apply_kernel(
     print(f"[DSL INFO] Sliced Tensors per thread block:")
     for i in cutlass.range_constexpr(len(ctaInputs)):
         print(f"[DSL INFO]   ctaInputs{i} = {ctaInputs[i].type}")
+        print(f"[DSL INFO]   ctaInputs{i} = {ctaInputs[i]}")
     print(f"[DSL INFO]   ctaC = {ctaC.type}")
     print(f"[DSL INFO]   ctaCrd = {ctaCrd.type}")
 
     # compose with CTA TV layout
     # (tid, vid) -> address
     tidfrgInputs = [cute.composition(t, tv_layout) for t in ctaInputs]
+    for i in cutlass.range_constexpr(len(ctaInputs)):
+        print(f"[DSL INFO]   tidfrgInputs = {tidfrgInputs[i]}")
+    
     tidfrgC = cute.composition(ctaC, tv_layout)
     tidfrgCrd = cute.composition(ctaCrd, tv_layout)
-    # print(f"{tv_layout = }")
+    print(f"{tv_layout = }")
     # print(f"{tidfrgAB[0] = }")
 
     thr_coord = (tidx, (None, None))
@@ -115,6 +119,9 @@ def elementwise_apply_kernel(
     # slice for threads
     # vid -> address
     thrInputs = [t[thr_coord] for t in tidfrgInputs]  # (V)
+    for i in cutlass.range_constexpr(len(thrInputs)):
+        print(f"[DSL INFO]   thrInputs = {thrInputs[i]}")
+
     thrC = tidfrgC[thr_coord]  # (V)
     thrCrd = tidfrgCrd[thr_coord]
 
@@ -129,11 +136,12 @@ def elementwise_apply_kernel(
     frgC = cute.make_fragment_like(thrC, gC.element_type)
     frgPred = cute.make_fragment(thrCrd.shape, cutlass.Boolean)
 
-    for i in cutlass.range(cute.size(frgPred), unroll=1):
+    for i in cutlass.range(cute.size(frgPred), unroll_full=True):
         frgPred[i] = cute.elem_less(thrCrd[i], shape)
 
-    # if tidx == 0 and bidx == 0:
-    #     cute.print_tensor(frgPred)
+    if tidx == 0 and bidx == 0:
+        cute.printf("frgPred:")
+        cute.print_tensor(frgPred)
 
     ##########################################################
     # Move data to reg address space

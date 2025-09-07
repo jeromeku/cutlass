@@ -122,6 +122,22 @@ union SmemDescriptor
   operator uint64_t() const noexcept { return desc_; }
 };
 
+// Printer
+CUTE_HOST_DEVICE void
+print(UMMA::SmemDescriptor const& t)
+{
+#if !defined(__CUDACC_RTC__)
+  printf("UMMA::SmemDescriptor: 0x%016llx\n",   static_cast<unsigned long long>(t.desc_));
+  printf("  start_addr :  0x%04x\n",      t.start_address_);
+  printf("  leading_off:  0x%04x (%d)\n", t.leading_byte_offset_, t.leading_byte_offset_);
+  printf("  stride_off :  0x%04x (%d)\n", t.stride_byte_offset_,  t.stride_byte_offset_);
+  printf("  base_offset:  0x%01x\n",      t.base_offset_);
+  printf("  lbo_mode   :  0x%01x\n",      t.lbo_mode_);
+  printf("  layout_type:  0x%01x (%s)\n", t.layout_type_, UMMA::to_string(static_cast<UMMA::LayoutType>(t.layout_type_)));
+  printf("  version    :  0x%01x\n",      t.version_);
+#endif // !defined(__CUDACC_RTC__)
+}
+
 enum class F16F32Format : uint8_t {
   F16  = 0,
   BF16 = 1,
@@ -438,6 +454,28 @@ union InstrDescriptor
   operator uint32_t() const noexcept { return desc_; }
 };
 
+// Printer
+CUTE_HOST_DEVICE void
+print(UMMA::InstrDescriptor const& t)
+{
+#if !defined(__CUDACC_RTC__)
+  printf("UMMA::InstrDescriptor: 0x%08x\n",   static_cast<unsigned int>(t.desc_));
+  printf("  sparse_id2 :  0x%x\n",  t.sparse_id2_);
+  printf("  sparse_flag:  0x%x\n",  t.sparse_flag_);
+  printf("  saturate   :  0x%x\n",  t.saturate_);
+  printf("  c_format   :  0x%x (%s)\n",  t.c_format_, UMMA::to_string(static_cast<UMMA::CFormat>(t.c_format_)));
+  printf("  a_format   :  0x%x\n",  t.a_format_);
+  printf("  b_format   :  0x%x\n",  t.b_format_);
+  printf("  a_negate   :  0x%x\n",  t.a_negate_);
+  printf("  b_negate   :  0x%x\n",  t.b_negate_);
+  printf("  a_major    :  0x%x (%s)\n",  t.a_major_, t.a_major_ ? "MN" : "K");
+  printf("  b_major    :  0x%x (%s)\n",  t.b_major_, t.b_major_ ? "MN" : "K");
+  printf("  n_dim      :  0x%x (%d)\n",  t.n_dim_, t.n_dim_);
+  printf("  m_dim      :  0x%x (%d)\n",  t.m_dim_, t.m_dim_);
+  printf("  max_shift  :  0x%x\n",  t.max_shift_);
+#endif // !defined(__CUDACC_RTC__)
+}
+
 union InstrDescriptorBlockScaled
 {
   uint32_t desc_;
@@ -466,6 +504,28 @@ union InstrDescriptorBlockScaled
   CUTE_HOST_DEVICE constexpr
   operator uint32_t() const noexcept { return desc_; }
 };
+
+// Printer
+CUTE_HOST_DEVICE void
+print(UMMA::InstrDescriptorBlockScaled const& t)
+{
+#if !defined(__CUDACC_RTC__)
+  printf("UMMA::InstrDescriptorBlockScaled: 0x%08x\n", static_cast<unsigned int>(t.desc_));
+  printf("  sparse_id2 :  0x%x\n",  t.sparse_id2_);
+  printf("  sparse_flag:  0x%x\n",  t.sparse_flag_);
+  printf("  b_sf_id    :  0x%x\n",  t.b_sf_id_);
+  printf("  a_format   :  0x%x\n",  t.a_format_);
+  printf("  b_format   :  0x%x\n",  t.b_format_);
+  printf("  a_sf_id    :  0x%x\n",  t.a_sf_id_);
+  printf("  scale_fmt  :  0x%x (%s)\n",  t.scale_format_, UMMA::to_string(static_cast<UMMA::ScaleFormat>(t.scale_format_)));
+  printf("  a_negate   :  0x%x\n",  t.a_negate_);
+  printf("  b_negate   :  0x%x\n",  t.b_negate_);
+  printf("  a_major    :  0x%x (%s)\n",  t.a_major_, t.a_major_ ? "MN" : "K");
+  printf("  b_major    :  0x%x (%s)\n",  t.b_major_, t.b_major_ ? "MN" : "K");
+  printf("  n_dim      :  0x%x (%d)\n",  t.n_dim_, t.n_dim_);
+  printf("  m_dim      :  0x%x (%d)\n",  t.m_dim_, t.m_dim_);
+#endif // !defined(__CUDACC_RTC__)
+}
 
 template <class a_type, class b_type, class c_type,
           int M, int N, UMMA::Major a_major, UMMA::Major b_major,
