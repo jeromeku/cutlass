@@ -198,19 +198,17 @@ def override_cute_arch(
 
         # Clear CuTe env caches so new DSL instances re-read env
         try:
-            from cutlass.CuTeDSL.base_dsl import env_manager as _env  # type: ignore
+            from cutlass.base_dsl import env_manager as _env  # type: ignore
         except Exception:
-            try:
-                # Alternate package layout
-                from CuTeDSL.base_dsl import env_manager as _env  # type: ignore
-            except Exception:
-                _env = None
-        if _env is not None:
-            for fn_name in ("get_str_env_var", "get_bool_env_var", "get_int_env_var"):
-                fn = getattr(_env, fn_name, None)
-                if fn and hasattr(fn, "cache_clear"):
-                    fn.cache_clear()  # type: ignore[attr-defined]
+            _env = None
+        assert _env is not None
+        for fn_name in ("get_str_env_var", "get_bool_env_var", "get_int_env_var"):
+            fn = getattr(_env, fn_name, None)
+            if fn and hasattr(fn, "cache_clear"):
+                fn.cache_clear()  # type: ignore[attr-defined]
+
         yield
+
     finally:
         # restore
         if arch is not None:
@@ -247,14 +245,10 @@ def _effective_arch_report(executor, dsl_prefix: str) -> str:
     # Best-effort device capability
     dev_cc = None
     try:
-        from cutlass.CuTeDSL.base_dsl.runtime.cuda import get_compute_capability_major_minor  # type: ignore
+        from cutlass.base_dsl.runtime.cuda import get_compute_capability_major_minor  # type: ignore
         dev_cc = get_compute_capability_major_minor()
     except Exception:
-        try:
-            from CuTeDSL.base_dsl.runtime.cuda import get_compute_capability_major_minor  # type: ignore
-            dev_cc = get_compute_capability_major_minor()
-        except Exception:
-            dev_cc = None
+        dev_cc = None
     dev_cc_s = f"{dev_cc[0]}.{dev_cc[1]}" if isinstance(dev_cc, tuple) and dev_cc[0] is not None else "unknown"
     return (
         "[CuTe PTX Tools] Architecture Registration\n"
