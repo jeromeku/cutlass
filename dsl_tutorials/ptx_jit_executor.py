@@ -54,27 +54,108 @@ def _guess_entries(ptx: bytes) -> List[str]:
 
 _ASM_RE = re.compile(r'assembly\s*=\s*"((?:\\.|[^"])*)"', re.S)
 
+# def module_to_text(ir_module) -> str:
+#     # Get textual assembly for the whole module. Use keyword args to avoid the binding trap.
+#     s = io.StringIO()
+#     try:
+#         ir_module.operation.print(file=s, binary=False, print_generic_op_form=False)
+#         return s.getvalue()
+#     except Exception:
+#         # Fallback – stringify; good enough for post-processing
+#         return str(ir_module.operation)
+
+# --- 1) stringify the module once ---
 def module_to_text(ir_module) -> str:
-    # Get textual assembly for the whole module. Use keyword args to avoid the binding trap.
     s = io.StringIO()
     try:
+        # IMPORTANT: keyword args so the binding treats 's' as file, not AsmState
         ir_module.operation.print(file=s, binary=False, print_generic_op_form=False)
         return s.getvalue()
     except Exception:
-        # Fallback – stringify; good enough for post-processing
         return str(ir_module.operation)
 
-def extract_all_ptx_from_text(mod_text: str) -> List[Dict[str, object]]:
-    """
-    Returns a list of {"ptx": bytes, "entries": [names]} for every assembly blob found.
-    """
-    out = []
-    for m in _ASM_RE.finditer(mod_text):
-        escaped = m.group(1)                  # still escaped text
-        ptx = _unescape_mlir_quoted_bytes(escaped)
-        if _looks_like_ptx(ptx):
-            out.append({"ptx": ptx, "entries": _guess_entries(ptx)})
-    return out
+# --- 2) robust unescaper for MLIR-quoted strings ---
+def unescape_mlir_quoted_bytes(escaped: str) -> bytes:
+    b = escaped.encode("utf-8", "replace")
+    out = bytearray()
+    i, n = 0, len(b)
+
+    def ishex(x: int) -> bool:
+        return (48 <= x <= 57) or (65 <= x <= 70) or (97 <= x <= 102)  # 0-9 A-F a-f
+
+    while i < n:
+        c = b[i]
+        if c == 0x5C:  # backslash
+            # \xx hex (exactly two)
+            if i + 2 < n and ishex(b[i+1]) and ishex(b[i+2]):
+                out += bytearray.fromhex(bytes(b[i+1:i+3]).decode("ascii"))
+                i += 3
+                continue
+            # common escapes: \\ \" -> take next char literally
+            if i + 1 < n:
+                out.append(b[i+1])
+                i += 2
+                continue
+            i += 1
+        else:
+            out.append(c); i += 1
+    return bytes(out)
+
+# --- 3) tiny state machine to collect all assembly="...": returns list[str] of escaped payloads ---
+def iter_assembly_strings(mod_text: str):
+    key = 'assembly'
+    i, n = 0, len(mod_text)
+    while i < n:
+        j = mod_text.find(key, i)
+        if j < 0: break
+        k = j + len(key)
+        # skip spaces and "= "
+        while k < n and mod_text[k].isspace(): k += 1
+        if k >= n or mod_text[k] != '=':
+            i = k; continue
+        k += 1
+        while k < n and mod_text[k].isspace(): k += 1
+        if k >= n or mod_text[k] != '"':
+            i = k; continue
+        # we are at opening quote
+        k += 1
+        start = k
+        esc = False
+        while k < n:
+            ch = mod_text[k]
+            if esc:
+                esc = False
+                k += 1
+                continue
+            if ch == '\\':
+                esc = True
+                k += 1
+                continue
+            if ch == '"':
+                # closing quote
+                yield mod_text[start:k]
+                k += 1
+                break
+            k += 1
+        i = k
+
+# --- 4) helpers for PTX sanity ---
+_PTXX = re.compile(rb'(?m)^\s*(?:\.visible\s+)?\.entry\s+([A-Za-z0-9_.$@-]+)')
+def looks_like_ptx(buf: bytes) -> bool:
+    head = buf[:128].lstrip()
+    return (head.startswith(b".version") or head.startswith(b"//") or head.startswith(b".target"))
+
+def guess_entries(ptx: bytes):
+    return [m.group(1).decode("utf-8", "replace") for m in _PTXX.finditer(ptx)]
+
+# --- 5) one-shot API: get PTX blobs from module text ---
+def extract_all_ptx_from_text(mod_text: str):
+    blobs = []
+    for esc in iter_assembly_strings(mod_text):
+        raw = unescape_mlir_quoted_bytes(esc)
+        if looks_like_ptx(raw):
+            blobs.append({"ptx": raw, "entries": guess_entries(raw)})
+    return blobs
 
 class JitExecutor:
     def __init__(
@@ -342,36 +423,41 @@ class JitExecutor:
 
                 # --- PTX path (optional) ---
                 if prefer_ptx:
-                    def walk_callback_ptx(sym_name, func_sym, ptx_bytes):
-                        nonlocal loaded
+                  # --- Pure-text path: dump whole module once, then regex out PTX blobs ---
+                    text = module_to_text(self.ir_module)   # full module text
+                    breakpoint()
+                    blobs = extract_all_ptx_from_text(text) # list of PTX blobs
+                    # Try to find a blob whose entries include our symbol; else take the first blob.
+                    chosen = None
+                    for item in blobs:
+                        if any(sym == e or sym.endswith("_kernel") and sym[:-7] == e for e in item["entries"]):
+                            chosen = item; break
+                    if chosen is None and blobs:
+                        chosen = blobs[0]
+
+                    if chosen is not None:
+                        ptx_bytes = chosen["ptx"]
+                        # Optional: dump to disk if requested
                         try:
-                            breakpoint()
-                            # Many wrappers call cuModuleLoadData(Ex) under the hood;
-                            # they can accept PTX text buffers just fine.
-                            self._dump_ptx(sym_name, func_sym, ptx_bytes)
-
-                            cubin_module = cuda_helpers.load_cubin_module_data(ptx_bytes)
-
-                            kernel_ptr = cuda_helpers.get_kernel_function(
-                                cubin_module, func_sym
-                            )
+                            self._dump_ptx(sym, sym, ptx_bytes)  # no-op unless you added the dumper earlier
+                        except Exception:
+                            pass
+                        try:
+                            cubin_module = cuda_helpers.load_cubin_module_data(ptx_bytes)  # cuModuleLoadDataEx accepts PTX
+                            func_sym = sym
+                            if func_sym.encode() not in ptx_bytes and chosen["entries"]:
+                                func_sym = chosen["entries"][0]  # pick the first .entry if the sym isn’t present
+                            kernel_ptr = cuda_helpers.get_kernel_function(cubin_module, func_sym)
                             if cuda_driver_version >= 11080:
                                 cuda_helpers.set_kernel_attribute(
                                     kernel_ptr,
                                     cuda_helpers.cuda.CUfunction_attribute.CU_FUNC_ATTRIBUTE_NON_PORTABLE_CLUSTER_SIZE_ALLOWED,
                                     1,
                                 )
-                            cuda_kernel_cache[sym_name] = CudaSingleModule(
-                                cubin_module, kernel_ptr
-                            )
+                            cuda_kernel_cache[sym] = CudaSingleModule(cubin_module, kernel_ptr)
                             loaded = True
-                            log().debug(f"Loaded PTX for {sym_name}/{func_sym}")
                         except Exception as e:
-                            log().warning(
-                                f"PTX load failed for {sym_name}/{func_sym}, will fall back to cubin. Err: {e}"
-                            )
-
-                    self.walk_module_and_get_ptx_data(module, sym, walk_callback_ptx)
+                            log().warning(f"PTX JIT load failed for {sym}: {e}")
 
                 # --- Default cubin path (fallback or primary) ---
                 if not loaded:
