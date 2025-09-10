@@ -370,12 +370,14 @@ class JitExecutor:
         base = f"{sym_name}__{func_sym}__{tgt}__{ver}__{h}.ptx"
 
         outpath = os.path.join(outdir, base)
-
+        breakpoint()
         # Atomic-ish write
         tmp = outpath + ".tmp"
+        ptx_bytes = ptx_bytes.rstrip(b"\x00")
+
         try:
             with open(tmp, "wb") as f:
-                f.write(ptx_bytes)
+                f.write(ptx_bytes.rstrip())
             os.replace(tmp, outpath)
 
             try:

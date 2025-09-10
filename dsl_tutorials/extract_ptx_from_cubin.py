@@ -30,6 +30,19 @@ import cutlass.base_dsl.jit_executor as jit_executor_mod
 assert jit_executor_mod.JitExecutor is PTXJitExecutor
 assert dsl_mod.JitExecutor is PTXJitExecutor
 
+from cutlass.base_dsl import BaseDSL as base_dsl_mod
+original_preprocess = base_dsl_mod.preprocess_pipeline
+
+def _patched_preprocess(self, pipeline: str, arch: str) -> str:  # type: ignore[override]
+    p = original_preprocess(self, pipeline, arch)
+    # Replace the binary output selection to PTX text
+    breakpoint()
+    # cubin-features=\"+ptx87\"
+    return p.replace("cubin-format=bin", "cubin-format=assembly")
+
+# Apply patches
+base_dsl_mod.preprocess_pipeline = _patched_preprocess  # type: ignore[assignment]
+
 def _is_elf(blob: bytes) -> bool:
     return len(blob) >= 4 and blob.startswith(b"\x7fELF")
 
