@@ -39,32 +39,10 @@ def patch_pipeline_to_ptx(skip_driver_load: bool = True):
       to a no-op, avoiding attempts to load PTX as a CUBIN.
     """
     # Resolve modules from either installed or source layouts
-    dsl_mod = None
-    jit_exec_mod = None
-    tried = []
-    for modpath in (
-        "cutlass.CuTeDSL.base_dsl.dsl",
-        "CuTeDSL.base_dsl.dsl",
-        "python.CuTeDSL.base_dsl.dsl",
-    ):
-        try:
-            dsl_mod = __import__(modpath, fromlist=["dummy"])  # type: ignore
-            break
-        except Exception as e:
-            tried.append((modpath, str(e)))
-    if dsl_mod is None:
-        raise ImportError(f"Unable to import BaseDSL for patching; tried: {tried}")
-
-    for modpath in (
-        "cutlass.CuTeDSL.base_dsl.jit_executor",
-        "CuTeDSL.base_dsl.jit_executor",
-        "python.CuTeDSL.base_dsl.jit_executor",
-    ):
-        try:
-            jit_exec_mod = __import__(modpath, fromlist=["dummy"])  # type: ignore
-            break
-        except Exception:
-            continue
+    from cutlass.base_dsl import dsl
+    from cutlass.base_dsl import jit_executor
+    dsl_mod = dsl
+    jit_exec_mod = jit_executor
 
     BaseDSL = getattr(dsl_mod, "BaseDSL")
 
@@ -77,8 +55,9 @@ def patch_pipeline_to_ptx(skip_driver_load: bool = True):
 
     def _patched_preprocess(self, pipeline: str, arch: str) -> str:  # type: ignore[override]
         p = original_preprocess(self, pipeline, arch)
+        
         # Replace the binary output selection to PTX text
-        return p.replace("cubin-format=bin", "cubin-format=ptx")
+        return p.replace("cubin-format=bin", "cubin-format=assembly")
 
     # Apply patches
     BaseDSL.preprocess_pipeline = _patched_preprocess  # type: ignore[assignment]
