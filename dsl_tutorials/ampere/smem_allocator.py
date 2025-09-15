@@ -71,15 +71,15 @@ class SharedStorage:
     a: cute.struct.MemRange[cutlass.Float32, 32]  # array 32 * 4 = 128
     b: cutlass.Int64  # saclar 64
     c: complex  # nested struct 8
-    # 200
+    # 128 + 8 + 8 = 144
     # struct elements with strict alignment
     x: cute.struct.Align[
         cute.struct.MemRange[cutlass.Float32, 32],
         128,
     ]
-    # 32 * 4 = 128 => 128 * 2 = 256 => 256 + 128 = 384
-    y: cute.struct.Align[cutlass.Int32, 8]
-    z: cute.struct.Align[complex, 16]
+    # 32 * 4 = 128 => 144 => 128 * 2 = 256 => 256 + 128 = 384
+    y: cute.struct.Align[cutlass.Int32, 8] # 4, 384 % 8 = 0 => 388
+    z: cute.struct.Align[complex, 16] # 16 * 8 = 128
 
 
 @cute.kernel
