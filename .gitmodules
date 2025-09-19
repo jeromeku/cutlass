@@ -1,3 +1,6 @@
 [submodule "thirdparty/quack"]
 	path = thirdparty/quack
 	url = https://github.com/jeromeku/quack
+[submodule "thirdparty/flashinfer"]
+	path = thirdparty/flashinfer
+	url = https://github.com/jeromeku/flashinfer
