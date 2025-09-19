@@ -1,44 +1,91 @@
 import cuda.bindings.driver as cuda
+from cuda.core.experimental._utils.cuda_utils import handle_return
 
-def test_cuda_memcpy():
-    # Init CUDA
-    (err,) = cuda.cuInit(0)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+DEVICE = 0
 
-    # # Get device
-    err, device = cuda.cuDeviceGet(0)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+# Start conservative; bump later once it works.
+kPTX = r"""
+.version 8.0
+.target sm_90
+.address_size 64
 
-    # # Construct context
-    # err, ctx = cuda.cuCtxCreate(None, 0, device)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+.visible .entry add1(
+    .param .u64 arr,
+    .param .u32 n
+){
+    .reg .pred %p;
+    .reg .b32  %r, %N, %tid, %bid, %bdim;
+    .reg .b64  %ptr, %addr;
+    .reg .f32  %val;
 
-    # # Allocate dev memory
-    # size = int(1024 * np.uint8().itemsize)
-    # err, dptr = cuda.cuMemAlloc(size)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+    ld.param.u64 %ptr, [arr];
+    ld.param.u32 %N,   [n];
 
-    # # Set h1 and h2 memory to be different
-    # h1 = np.full(size, 1).astype(np.uint8)
-    # h2 = np.full(size, 2).astype(np.uint8)
-    # assert np.array_equal(h1, h2) is False
+    mov.u32 %tid, %tid.x;
+    mov.u32 %bid, %ctaid.x;
+    mov.u32 %bdim, %ntid.x;
+    mad.lo.s32 %r, %bid, %bdim, %tid;
 
-    # # h1 to D
-    # (err,) = cuda.cuMemcpyHtoD(dptr, h1, size)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+    setp.ge.u32 %p, %r, %N;
+    @%p bra DONE;
 
-    # # D to h2
-    # (err,) = cuda.cuMemcpyDtoH(h2, dptr, size)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+    mul.wide.u32 %addr, %r, 4;
+    add.s64 %addr, %ptr, %addr;
 
-    # # Validate h1 == h2
-    # assert np.array_equal(h1, h2)
+    ld.global.f32 %val, [%addr];
+    add.f32 %val, %val, 1.0;
+    st.global.f32 [%addr], %val;
 
-    # # Cleanup
-    # (err,) = cuda.cuMemFree(dptr)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
-    # (err,) = cuda.cuCtxDestroy(ctx)
-    # assert err == cuda.CUresult.CUDA_SUCCESS
+DONE:
+    ret;
+}
+"""
 
-if __name__ == "__main__":
-    test_cuda_memcpy()
+def test_cuda_ptx():
+    handle_return(cuda.cuInit(0))
+    _err, dev = cuda.cuDeviceGet(DEVICE)
+    ctx = handle_return(cuda.cuDevicePrimaryCtxRetain(DEVICE))
+    handle_return(cuda.cuCtxSetCurrent(ctx))
+
+    info_log = bytearray(16384)
+    err_log  = bytearray(16384)
+
+    option_keys = [
+        cuda.CUjit_option.CU_JIT_INFO_LOG_BUFFER,
+        cuda.CUjit_option.CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+        cuda.CUjit_option.CU_JIT_ERROR_LOG_BUFFER,
+        cuda.CUjit_option.CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES,
+        cuda.CUjit_option.CU_JIT_LOG_VERBOSE,
+        # cuda.CUjit_option.CU_JIT_TARGET,
+    ]
+    option_vals = [
+        info_log,
+        len(info_log),
+        err_log,
+        len(err_log),
+        1,
+        # cuda.CUtarget.CU_TARGET_FROM_CUCONTEXT,
+    ]
+
+    ptx_bytes = kPTX.strip().encode("utf-8") + b"\x00"
+
+    # ---- Call directly, inspect return + logs ----
+    res, mod = cuda.cuModuleLoadDataEx(ptx_bytes,
+                                       len(option_keys),
+                                       option_keys,
+                                       option_vals)
+    if res != cuda.CUresult.CUDA_SUCCESS:
+        # The logs are C-strings; decode up to the first NUL.
+        def cstr(b):
+            try:
+                n = b.index(0)
+            except ValueError:
+                n = len(b)
+            return b[:n].decode(errors="replace")
+        print("JIT INFO:\n", cstr(info_log))
+        print("JIT ERRORS:\n", cstr(err_log))
+        # Now raise the original error so your test harness still fails.
+        raise RuntimeError(f"cuModuleLoadDataEx failed: {res}")
+
+    print("Module loaded:", mod)
+test_cuda_ptx()
