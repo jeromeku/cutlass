@@ -14,22 +14,22 @@ kPTX = r"""
     .param .u32 n
 ){
     .reg .pred %p;
-    .reg .b32  %r, %N, %tid, %bid, %bdim;
+    .reg .b32  %r<5>;
     .reg .b64  %ptr, %addr;
     .reg .f32  %val;
 
     ld.param.u64 %ptr, [arr];
-    ld.param.u32 %N,   [n];
+    ld.param.u32 %r1,   [n];
 
-    mov.u32 %tid, %tid.x;
-    mov.u32 %bid, %ctaid.x;
-    mov.u32 %bdim, %ntid.x;
-    mad.lo.s32 %r, %bid, %bdim, %tid;
+    mov.u32 %r2, %tid.x;
+    mov.u32 %r3, %ctaid.x;
+    mov.u32 %r4, %ntid.x;
+    mad.lo.s32 %r0, %r3, %r4, %r2;
 
-    setp.ge.u32 %p, %r, %N;
+    setp.ge.u32 %p, %r0, %r1;
     @%p bra DONE;
 
-    mul.wide.u32 %addr, %r, 4;
+    mul.wide.u32 %addr, %r0, 4;
     add.s64 %addr, %ptr, %addr;
 
     ld.global.f32 %val, [%addr];
