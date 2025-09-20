@@ -41,7 +41,7 @@
 #include "cutlass/util/command_line.h"
 // #include "../common/cutlass_unit_test.h"
 
-#define CUTLASS_UNIT_TEST_PIPELINE true
+// #define CUTLASS_UNIT_TEST_PIPELINE true
 
 // Command line test options
 struct Options {

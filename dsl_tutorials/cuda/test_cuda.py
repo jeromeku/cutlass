@@ -1,6 +1,8 @@
 import cuda.bindings.driver as cuda
 from cuda.core.experimental._utils.cuda_utils import handle_return
 import numpy as np
+from contextlib import contextmanager
+
 DEVICE = 0
 driver = cuda
 
@@ -59,12 +61,11 @@ def checkCudaErrors(result):
         return result[1]
     else:
         return result[1:]
-    
-def test_cuda_ptx():
-    handle_return(cuda.cuInit(0))
-    _err, dev = cuda.cuDeviceGet(DEVICE)
-    ctx = handle_return(cuda.cuDevicePrimaryCtxRetain(DEVICE))
-    handle_return(cuda.cuCtxSetCurrent(ctx))
+
+
+def load_module(ptx: str):
+
+    ptx_bytes = ptx.strip().encode("utf-8") + b"\x00"
 
     info_log = bytearray(16384)
     err_log  = bytearray(16384)
@@ -86,8 +87,6 @@ def test_cuda_ptx():
         # cuda.CUtarget.CU_TARGET_FROM_CUCONTEXT,
     ]
 
-    ptx_bytes = kPTX.strip().encode("utf-8") + b"\x00"
-
     # ---- Call directly, inspect return + logs ----
     res, mod = cuda.cuModuleLoadDataEx(ptx_bytes,
                                        len(option_keys),
@@ -105,22 +104,40 @@ def test_cuda_ptx():
         print("JIT ERRORS:\n", cstr(err_log))
         # Now raise the original error so your test harness still fails.
         raise RuntimeError(f"cuModuleLoadDataEx failed: {res}")
+    return mod
 
-    print("Module loaded:", mod)
-
-    func = handle_return(cuda.cuModuleGetFunction(mod, b"add1"))
-    num_elements = 16
+def allocate_inputs(num_elements: int = 16, val: int = 1):
     N = np.array(num_elements, dtype=np.uint32)
-    hX = np.ones(N, dtype=np.float32)
+    hX = np.full(N, val, dtype=np.float32)
+    # hX = np.ones(N, dtype=np.float32)
+
     BUFFER_SIZE = N * hX.itemsize
     assert BUFFER_SIZE == hX.nbytes
 
-    _dX = handle_return(cuda.cuMemAlloc(hX.nbytes))
+    _dX = checkCudaErrors(cuda.cuMemAlloc(hX.nbytes))
     checkCudaErrors(cuda.cuMemcpyHtoD(_dX, hX.ctypes.data, hX.nbytes))
     dX = np.array([int(_dX)], dtype=np.int64)
+
+    return hX, dX, N
+
+def prepare_kernel_params(*args):
+    return np.array([arg.ctypes.data for arg in args], dtype=np.uint64)
+
+def test_cuda_ptx():
+    checkCudaErrors(cuda.cuInit(0))
+    dev = checkCudaErrors(cuda.cuDeviceGet(DEVICE))
+    # ctx = handle_return(cuda.cuDevicePrimaryCtxRetain(DEVICE))
+    ctx = checkCudaErrors(cuda.cuCtxCreate(0, dev))
+    checkCudaErrors(cuda.cuCtxSetCurrent(ctx))
+
+    mod = load_module(kPTX)
+
+    func = handle_return(cuda.cuModuleGetFunction(mod, b"add1"))
+    
     # kernel params are pointers to host values
-    kernel_params = (dX, N)
-    kernel_params = np.array([arg.ctypes.data for arg in kernel_params], dtype=np.uint64)
+    VAL = 1
+    hX, dX, N = allocate_inputs(num_elements=16, val=VAL)
+    kernel_params = prepare_kernel_params(dX, N)
 
     # cuda-python wants a tuple of pointers; Helper marshals them
     checkCudaErrors(cuda.cuLaunchKernel(
@@ -133,11 +150,14 @@ def test_cuda_ptx():
         0
     ))
     checkCudaErrors(cuda.cuCtxSynchronize())
-
+    
     out = np.empty_like(hX)
     checkCudaErrors(cuda.cuMemcpyDtoH(out.ctypes.data, dX, out.nbytes))
-    print("out:", out[:8])
-
-    checkCudaErrors(cuda.cuMemFree(dX))
+    print("out:", out[:5])
+    assert np.allclose(out, np.full_like(hX, VAL + 1))
+    
+    checkCudaErrors(cuda.cuMemFree(dX.item()))
+    checkCudaErrors(cuda.cuModuleUnload(mod))
+    checkCudaErrors(cuda.cuCtxDestroy(ctx))
 
 test_cuda_ptx()
