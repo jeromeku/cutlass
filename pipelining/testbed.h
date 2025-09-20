@@ -41,11 +41,7 @@
 #include "cutlass/util/command_line.h"
 // #include "../common/cutlass_unit_test.h"
 
-#if CUDA_12_0_SM90_FEATURES_SUPPORTED
-  #define CUTLASS_UNIT_TEST_PIPELINE true
-#else
-  #define CUTLASS_UNIT_TEST_PIPELINE false
-#endif
+#define CUTLASS_UNIT_TEST_PIPELINE true
 
 // Command line test options
 struct Options {

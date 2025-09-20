@@ -15,13 +15,16 @@ CUDA_ARCH=compute_90a
 CUDA_CODE=sm_90a
 ARCH_FLAGS=--generate-code=arch=${CUDA_ARCH},code=${CUDA_CODE}
 TMA_DEBUG_FLAG=-DPRINT_TMA_DESCRIPTOR
-
+PIPELINE_TEST_FLAG=-DCUTLASS_UNIT_TEST_PIPELINE
 .PHONY: all clean
 
-all: clean sequence_barrier
+all: clean
 
 sequence_barrier: sequence_barrier.cu
-	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAG} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -I${CUDA_ROOT}/include -o $@ $<
+	nvcc ${ARCH_FLAGS} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAGS} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -I${CUDA_ROOT}/include -o $@ $<
+
+pingpong_pipe: pipeline_tma_async_warp_specialized_persistent.cu
+	nvcc ${ARCH_FLAGS} ${PIPELINE_TEST_FLAG} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAGS} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} -I${CUTLASS_TEST_HEADERS} -I${CUDA_ROOT}/include -o $@ $<
 
 clean:
-	rm -rf sequence_barrier
+	rm -rf sequence_barrier pingpong_pipe
