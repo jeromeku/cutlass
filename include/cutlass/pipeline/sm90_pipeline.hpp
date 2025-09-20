@@ -564,6 +564,7 @@ private:
     #if CUTLASS_UNIT_TEST_PIPELINE
       if (params_.is_leader) {
         // STEP 1 : Commit to self
+        printf("UNIT_TEST_PIPELINE::PRODUCER_COMMIT\n");
         full_barrier_ptr_[stage].complete_transaction(bytes);
 
         // STEP 2 : Commit to other blocks in our cluster
