@@ -33,7 +33,7 @@
 #pragma warning (disable : 4068 ) /* disable unknown pragma warnings for visual studio */
 
 #pragma nv_diag_suppress boolean_controlling_expr_is_constant
-#include <gtest/gtest.h>
+// #include <gtest/gtest.h>
 #pragma nv_diag_warning boolean_controlling_expr_is_constant
 #pragma warning( disable : 4503)
 
