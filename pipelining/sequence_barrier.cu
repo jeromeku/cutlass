@@ -20,7 +20,7 @@
 #include "testbed.h"
 
 using namespace cute;
-constexpr int SLEEP_DURATION = 10;
+constexpr int SLEEP_DURATION = 10000;
 //////////////////// KERNEL /////////////////////////
 // Sequence barrier:
 /*
@@ -44,6 +44,17 @@ struct OrderedSequenceBarrierSharedStorage {
   Barrier barrier_[SequenceDepth][SequenceLength];
 };
 */
+
+#define PRINT_WAIT(label, tid_in_group, group_idx, i, index, phase) \
+    if (tid_in_group == 0) { \
+      printf("%s::(%d,%d): iter = %d, index = %d, phase = %d, waited on barrier = %d\n", label, group_idx, threadIdx.x, i, index, phase, index * 2 + group_idx); \
+    } \
+
+#define PRINT_ARRIVAL(label, tid_in_group, group_idx, i, index, phase, arrival_idx) \
+    if (tid_in_group == 0) { \
+      printf("%s::(%d,%d): iter = %d, index = %d, phase = %d, arrived on barrier = %d\n", label, group_idx, threadIdx.x, i, index, phase, arrival_idx * 2 + (group_idx + 1) % 2); \
+    } \
+
 template <typename OrderedSequencer> struct SharedStorage {
   typename OrderedSequencer::SharedStorage storage;
 };
@@ -67,6 +78,7 @@ __global__ static void ordered_sequence_device(uint32_t const num_iterations) {
       ThreadsPerGroup; // Number of threads / participants in a group
 
   SequenceBarrier barrier(shared_storage.storage, params);
+  int thread_idx_in_group = threadIdx.x % ThreadsPerGroup;
 
   // Ensure All CTAs in Cluster have completed init before issuing commits
   __syncthreads();
@@ -75,39 +87,32 @@ __global__ static void ordered_sequence_device(uint32_t const num_iterations) {
 
   CUTLASS_PRAGMA_NO_UNROLL
   for (int i = 0; i < num_iterations; ++i) {
+    if (thread_idx_in_group == 0) printf("START_ITERATION i=%d tid=%d\n", i, threadIdx.x);
 
-    barrier.wait();
-// STAGE 1 CODE...
-#ifndef NDEBUG
-    int thread_idx_in_group = threadIdx.x % ThreadsPerGroup;
-    if (thread_idx_in_group == 0) {
-      printf("STAGE 0 : Group_IDX : %d, id = %d, iter = %d, index = %d, phase "
-             "= %d, tidx = %d\n",
-             group_idx, params.group_id, i, barrier.stage_.index(),
-             barrier.stage_.phase(), threadIdx.x);
-    }
-#endif
-// Simulates long running stage
+    barrier.wait(); // Mainloop barrier
+    // STAGE 1 CODE...
+    PRINT_WAIT("MAINLOOP::START", thread_idx_in_group, group_idx, i, barrier.stage_.index(), barrier.stage_.phase());
+
+    // Simulates long running stage
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
     __nanosleep(SLEEP_DURATION);
 #endif
-    barrier.arrive();
+   int arrival_idx = barrier.stage_.index();
+   barrier.arrive();
+   PRINT_ARRIVAL("MAINLOOP::DONE", thread_idx_in_group, group_idx, i, barrier.stage_.index(), barrier.stage_.phase(), arrival_idx);
 
-    barrier.wait();
-// STAGE 2 CODE...
-#ifndef NDEBUG
-    if (thread_idx_in_group == 0) {
-      printf("STAGE 0 : Group_IDX : %d, id = %d, iter = %d, index = %d, phase "
-             "= %d, tidx = %d\n",
-             group_idx, params.group_id, i, barrier.stage_.index(),
-             barrier.stage_.phase(), threadIdx.x);
-    }
-#endif
-// Simulates long running stage
-#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
-    __nanosleep(100000);
-#endif
+    barrier.wait(); // Epilogue Barrier
+  // STAGE 2 CODE...
+
+  PRINT_WAIT("EPILOGUE::START", thread_idx_in_group, group_idx, i, barrier.stage_.index(), barrier.stage_.phase());
+  // Simulates long running stage
+  #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
+      __nanosleep(100000);
+  #endif
+    arrival_idx = barrier.stage_.index();
     barrier.arrive();
+    PRINT_ARRIVAL("EPILOGUE::DONE", thread_idx_in_group, group_idx, i, barrier.stage_.index(), barrier.stage_.phase(), arrival_idx);
+
   }
 
   // To make sure remote SMEM doesn't get destroyed
