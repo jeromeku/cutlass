@@ -20,7 +20,7 @@
 #include "cute/arch/cluster_sm90.hpp"
 
 using namespace cute;
-
+constexpr int SLEEP_DURATION = 10;
 //////////////////// KERNEL /////////////////////////
 
 template<typename OrderedSequencer>
@@ -67,7 +67,7 @@ void ordered_sequence_device(uint32_t const num_iterations)
     #endif
     // Simulates long running stage
     #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
-    __nanosleep(100000);
+    __nanosleep(SLEEP_DURATION);
     #endif
     barrier.arrive();
 
