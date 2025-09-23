@@ -27,6 +27,17 @@ constexpr int SLEEP_DURATION = 10000;
 Stages (Depth) => MMA / Epilogue
 Length => Num MMA groups
 OrderedSequenceBarrier<Stages, Length>
+Each iteration:
+MathWG0 waits on barriers 0 & 2 for MMA / Epilogue respectively 
+MathWG1 waits on barriers 1 & 3 for MMA / Epi, respectively
+MathWG0 arrives on barriers 1 & 3 to signal to WG1 that it is done with MMA / Epi, respectively; vice versa
+
+Each WG holds a PipelineState that resets after 2 stages (MMA & Epi)
+- Phase is flipped after NumStages arrivals so that the MMA and Epi barriers are kept in sync -- these two barriers share the same PipelineState whose Stage and index
+determine when phase is flipped.
+- E.g., on the first iteration, WG0 starts with phase = 1
+- Since there are no pending barriers, waits on MMA (stage 1) and Epi (stage 2) should completely immediately
+- If index resets after each arrive (each WG calls arrive after both MMA and Epi), WG0 would block on wait for epi barrier
 
 OrderedSequenceBarrier(SharedStorage& storage, Params const& params) :
       params_(params),
