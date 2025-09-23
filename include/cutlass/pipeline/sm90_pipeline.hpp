@@ -1341,6 +1341,10 @@ public:
   CUTLASS_DEVICE
   void arrive() {
     int signalling_id = (params_.group_id + 1) % Length;
+    #if defined(DEBUG_PINGPONG)
+    if(threadIdx.x % 128 == 0)
+      printf("tid %d arriving on barrier %d\n", threadIdx.x, stage_.index() * Length + signalling_id);
+    #endif
     get_barrier_for_current_stage(signalling_id).arrive();
     ++stage_;
   }
