@@ -1275,7 +1275,8 @@ public:
     int initializing_warp = 0; 
   };
 
-private:
+public:
+// private:
   // In future this Params object can be replaced easily with a CG object
   Params params_;
   Barrier *barrier_ptr_;
@@ -1284,7 +1285,7 @@ private:
   static constexpr int Depth = SequenceDepth;
   static constexpr int Length = SequenceLength;
 
-public:
+// public:
   OrderedSequenceBarrier() = delete;
   OrderedSequenceBarrier(const OrderedSequenceBarrier&) = delete;
   OrderedSequenceBarrier(OrderedSequenceBarrier&&) = delete;
