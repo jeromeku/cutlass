@@ -1,0 +1,7 @@
+.cache
+.vscode
+build
+bin
+*.so
+*.pyc
+.csv
