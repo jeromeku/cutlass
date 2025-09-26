@@ -39,6 +39,16 @@ determine when phase is flipped.
 - Since there are no pending barriers, waits on MMA (stage 1) and Epi (stage 2) should completely immediately
 - If index resets after each arrive (each WG calls arrive after both MMA and Epi), WG0 would block on wait for epi barrier
 
+For Producer <-> Consumer sync
+producer waits on empty, expect_tx (arrive) on full
+- stages = num pipeline stages
+            Full                        Empty
+stage  full index  full phase  empty index empty phase
+0          0            1           0                  
+1
+2
+...
+0
 OrderedSequenceBarrier(SharedStorage& storage, Params const& params) :
       params_(params),
       barrier_ptr_(&storage.barrier_[0][0]),
