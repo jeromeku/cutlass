@@ -21,6 +21,12 @@ SM100_FLAG=-DCUTLASS_ARCH_MMA_SM100_SUPPORTED
 
 all: clean 2sm_mma
 
+1sm_mma: 1sm_mma.cu
+	nvcc ${SM100_FLAG} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAG} \
+	${ARCH_FLAGS} ${CXX_FLAGS} \
+	-I${CUTLASS_HEADERS} -I${CUTLASS_TOOL_HEADERS} \
+	-I${CUDA_ROOT}/include -o $@ $<
+
 2sm_mma: 2sm_mma.cu
 	nvcc ${SM100_FLAG} ${TMA_DEBUG_FLAG} ${CUTLASS_DEBUG_FLAG} \
 	${ARCH_FLAGS} ${CXX_FLAGS} \
@@ -28,4 +34,4 @@ all: clean 2sm_mma
 	-I${CUDA_ROOT}/include -o $@ $<
 
 clean:
-	rm -rf 2sm_mma
+	rm -rf 2sm_mma 1sm_mma
