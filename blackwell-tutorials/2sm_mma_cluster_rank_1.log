@@ -1,0 +1,106 @@
+host_tensor_A:	ptr[16b](0x7eccc2839010) o (512,256):(256,_1)
+host_tensor_B:	ptr[16b](0x7eccc2498010) o (1024,256):(256,_1)
+host_tensor_C:	ptr[32b](0x7eccc1e00010) o (512,1024):(1024,_1)
+Running for problem shape (MxNxK): 512x1024x256
+TiledMMA
+  ThrLayoutVMNK:  (_2,_1,_1,_1):(_1,_0,_0,_0)
+  PermutationMNK: (_,_,_)
+MMA_Atom
+  ThrID:      _2:_1
+  Shape_MNK:  (_256,_256,_16)
+  LayoutA_TV: (_2,(_128,_16)):(_128,(_1,_256))
+  LayoutB_TV: (_2,(_128,_16)):(_128,(_1,_256))
+  LayoutC_TV: (_2,(_128,_256)):(_128,(_1,_256))
+mma_shape_A:	((_128,_16),_1,_4)
+mma_shape_B:	((_128,_16),_1,_4)
+sA_layout:	Sw<3,4,3> o smem_ptr[16b](unset) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+sB_layout:	Sw<3,4,3> o smem_ptr[16b](unset) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+/home/jeromeku/cutlass/include/cute/atom/copy_traits_sm90_tma.hppBefore multicast
+smem_box[0] = 64
+smem_box[1] = 128
+smem_box[2] = 1
+smem_box[3] = 1
+smem_box[4] = 1
+After multicast
+smem_box[0] = 64
+smem_box[1] = 32
+smem_box[2] = 1
+smem_box[3] = 1
+smem_box[4] = 1
+TMA Desc Addr:   0x7fffee9d5440
+format         6
+dim            2
+gmem_address   0x7eca79e00000
+globalDim      (256,512,1,1,1)
+globalStrides  (2,512,0,0,0)
+boxDim         (64,32,1,1,1)
+elementStrides (1,1,1,1,1)
+interleave     0
+swizzle        3
+l2Promotion    2
+oobFill        0
+tma_atom_A:	Copy_Atom
+  ThrID:        _2:_1
+  ValLayoutSrc: (_2,_8192):(_8192,_1)
+  ValLayoutDst: (_2,_8192):(_8192,_1)
+  ValLayoutRef: (_2,_8192):(_8192,_1)
+  ValueType:    16b
+
+/home/jeromeku/cutlass/include/cute/atom/copy_traits_sm90_tma.hppBefore multicast
+smem_box[0] = 64
+smem_box[1] = 128
+smem_box[2] = 1
+smem_box[3] = 1
+smem_box[4] = 1
+After multicast
+smem_box[0] = 64
+smem_box[1] = 64
+smem_box[2] = 1
+smem_box[3] = 1
+smem_box[4] = 1
+TMA Desc Addr:   0x7fffee9d5440
+format         6
+dim            2
+gmem_address   0x7eca79e40000
+globalDim      (256,1024,1,1,1)
+globalStrides  (2,512,0,0,0)
+boxDim         (64,64,1,1,1)
+elementStrides (1,1,1,1,1)
+interleave     0
+swizzle        3
+l2Promotion    2
+oobFill        0
+tma_atom_B:	Copy_Atom
+  ThrID:        _2:_1
+  ValLayoutSrc: (_2,_8192):(_8192,_1)
+  ValLayoutDst: (_2,_8192):(_8192,_1)
+  ValLayoutRef: (_2,_8192):(_8192,_1)
+  ValueType:    16b
+
+Grid launched: 4, 4, 1
+Cluster launched: 4, 4, 1
+mA:	ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
+mB:	ArithTuple(_0,_0) o (1024,256):(_1@1,_1@0)
+mC:	gmem_ptr[32b](0x7eca7c000000) o (512,1024):(1024,_1)
+mD:	gmem_ptr[32b](0x7eca95e00000) o (512,1024):(1024,_1)
+gA:	ArithTuple(_0,0) o (_256,_64,4):(_1@1,_1@0,_64@0)
+gB:	ArithTuple(_0,0) o (_256,_64,4):(_1@1,_1@0,_64@0)
+gC:	gmem_ptr[32b](0x7eca7c000000) o (_256,_256):(1024,_1)
+gD:	gmem_ptr[32b](0x7eca95e00000) o (_256,_256):(1024,_1)
+tCgA:	ArithTuple(_0,128) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
+tCgB:	ArithTuple(_0,128) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
+tCgC:	gmem_ptr[32b](0x7eca7c080000) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCgD:	gmem_ptr[32b](0x7eca95e80000) o ((_128,_256),_1,_1):((1024,_1),_0,_0)
+tCsA:	Sw<3,4,3>_smem_ptr[16b](0x7ecb01000400) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+tCsB:	Sw<3,4,3>_smem_ptr[16b](0x7ecb01004400) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
+tCrA:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
+tCrB:	UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
+tCtAcc:	tmem_[32b](0x0000.0000) o ((_128,_256),_1,_1):((_65536,_1),_0,_0)
+tAgA:	ArithTuple(0,128) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
+tAsA:	Sw<3,4,3>_smem_ptr[16b](0x7ecb01000400) o ((_8192,_1)):((_1,_0))
+tBgB:	ArithTuple(0,128) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
+tBsB:	Sw<3,4,3>_smem_ptr[16b](0x7ecb01004400) o ((_8192,_1)):((_1,_0))
+tma_transaction_bytes: 65536
+tma_mcast_mask_a: 2222
+tma_mcast_mask_b: a
+mma_mcast_mask_c: 333f

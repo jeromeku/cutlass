@@ -4,3 +4,6 @@
 [submodule "thirdparty/flashinfer"]
 	path = thirdparty/flashinfer
 	url = https://github.com/jeromeku/flashinfer
+[submodule "hilt"]
+	path = hilt
+	url = https://github.com/jeromeku/hilt

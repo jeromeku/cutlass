@@ -1,3 +1,33 @@
+/***************************************************************************************************
+ * Copyright (c) 2024 - 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ **************************************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -14,19 +44,6 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-NOTES on multicast
-For 4x4 cluster, A is multicast across blockDim.y (columns) and B is multicast across blockDim.x (rows)
-E.g., 
-(0,0) (0,1) (0,2) (0,3)
-(1,0)
-(2,0)
-(3,0)
-Matrix A will be multicast across (0,{0,1,2,3}) such that for a 128 x 64 MxK tile, each will TMA copy 32 x 64
-setting the TMA offset accordingly.  This can be seen in tAgA, which for cluster_in_rank 4 (corresponding to block coord [0, 1])
-will have an offset of (0, 32).  Note that TMA the fastest moving dim is always left to right, so for an K-major matrix,
-the second coord corresponds to M (rows).
-*/
 #include <iostream>
 #include <cstdio>
 
@@ -54,22 +71,18 @@ using namespace cute;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Tutorial 03: Blackwell SM100 GEMM using tcgen05.mma and Multicast TMA
+// Tutorial 01: Simple Blackwell SM100 GEMM using a tcgen05.mma instruction
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
+// The goal of this tutorial is to show the CuTe interface for tcgen05.mma and tcgen05.ld operations.
 // We will implement a GEMM operation: D (f32) = beta * C (F32) + alpha * A (F16) * B (F16) where:
 // - Matrix A is MxK, K-major (BLAS transpose T, row-major)
 // - Matrix B is NxK, K-major (BLAS transpose N, column-major)
 // - Matrices C and D are MxN, N-major (BLAS row-major)
 //
-// Key extensions from tutorial 02_mma_tma_sm100.cu:
-// 1. Introduce ClusterShape for coordinated execution across thread blocks
-// 2. Introduce TMA multicast
-// 3. Enhanced TMA <-> MMA synchronization for cluster-wide operations
-//
-// This GEMM kernel will perform the following steps:
-// 1. Load A and B matrices from GMEM to SMEM using Multicasted TMA load operations.
+// This GEMM kernel performs the following steps:
+// 1. Load A and B matrices from global memory (GMEM) to shared memory (SMEM) for one MmaTile
+//    using auto-vectorizing copy operations.
 // 2. Perform matrix multiply-accumulate (MMA) operations using tcgen05.mma instruction.
 // 3. Load completed accumulator from tensor memory (TMEM) to registers (RMEM) using tcgen05.ld.
 // 4. Read C matrix from global memory (GMEM) to register (RMEM).
@@ -97,7 +110,6 @@ using namespace cute;
 // TypeC = float;            // MMA C Data Type
 // TypeD = float;            // MMA D Data Type
 // TypeAccumulator = float;  // Both TypeC and TypeD are float, so we use float accumulator type
-#define CUTLASS_ARCH_MMA_SM100_SUPPORTED 1
 
 #if defined(CUTLASS_ARCH_MMA_SM100_SUPPORTED)
 
@@ -111,8 +123,7 @@ struct SharedStorage
   alignas(128) cute::ArrayEngine<TypeA, cute::cosize_v<ASmemLayout>> A;
   alignas(128) cute::ArrayEngine<TypeB, cute::cosize_v<BSmemLayout>> B;
 
-  alignas(16) cute::uint64_t mma_barrier;  // Barrier to track MMA computation on SMEM
-  alignas(16) cute::uint64_t tma_barrier;  // Barrier to track TMA data transfers to SMEM
+  alignas(16) cute::uint64_t mma_barrier;   // Barrier to track MMA computation on SMEM
 
   alignas(16) cute::uint32_t tmem_base_ptr; // Base pointer for TMEM allocation
 
@@ -124,7 +135,6 @@ struct SharedStorage
 template <class SharedStorage,
           class ATensor, class BTensor, class CTensor, class DTensor,
           class MmaTiler_MNK, class TiledMMA, class ClusterShape_MNK,
-          class TmaAtomA, class TmaAtomB,
           class Alpha, class Beta>
 __global__ static
 void
@@ -135,13 +145,8 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
             MmaTiler_MNK mma_tiler,          // <MmaTile_M, MmaTile_N, MmaTile_K>
             TiledMMA tiled_mma,              // <    Mma_M,     Mma_N,     Mma_K>
             ClusterShape_MNK cluster_shape,  // (ClusterM, ClusterN, ClusterK)
-            CUTE_GRID_CONSTANT TmaAtomA const tma_atom_A,
-            CUTE_GRID_CONSTANT TmaAtomB const tma_atom_B,
             Alpha alpha, Beta beta)
 {
-  int ctaID_in_cluster = 4;
-  bool shouldPrint = threadIdx.x == 0 && threadIdx.y == 0 && int(cute::block_rank_in_cluster()) == ctaID_in_cluster;
-
   // Step 1: The Prologue.
 
   // The CTA layout within the Cluster: (V,M,N,K) -> CTA idx
@@ -167,14 +172,14 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor gC = local_tile(mC, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
   Tensor gD = local_tile(mD, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
 
-  if (shouldPrint) {
-    print("mA:\t"); print(mA); print("\n");   // mA:   ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
-    print("mB:\t"); print(mB); print("\n");   // mB:   ArithTuple(_0,_0) o (1024,256):(_1@1,_1@0)
+  if (thread0()) {
+    print("mA:\t"); print(mA); print("\n");   // mA:   gmem_ptr[16b](GMEM_ADDR_A) o (512,256):(256,_1)
+    print("mB:\t"); print(mB); print("\n");   // mB:   gmem_ptr[16b](GMEM_ADDR_B) o (1024,256):(256,_1)
     print("mC:\t"); print(mC); print("\n");   // mC:   gmem_ptr[32b](GMEM_ADDR_C) o (512,1024):(1024,_1)
     print("mD:\t"); print(mD); print("\n");   // mD:   gmem_ptr[32b](GMEM_ADDR_D) o (512,1024):(1024,_1)
 
-    print("gA:\t"); print(gA); print("\n");   // gA:   ArithTuple(_0,0) o (_128,_64,4):(_1@1,_1@0,_64@0)
-    print("gB:\t"); print(gB); print("\n");   // gB:   ArithTuple(_0,0) o (_256,_64,4):(_1@1,_1@0,_64@0)
+    print("gA:\t"); print(gA); print("\n");   // gA:   gmem_ptr[16b](GMEM_ADDR_A + offset_for_mma_tile) o (_128,_64,4):(256,_1,_64)
+    print("gB:\t"); print(gB); print("\n");   // gB:   gmem_ptr[16b](GMEM_ADDR_B + offset_for_mma_tile) o (_256,_64,4):(_1,256,16384)
     print("gC:\t"); print(gC); print("\n");   // gC:   gmem_ptr[32b](GMEM_ADDR_C + offset_for_mma_tile) o (_128,_256):(256,_1)
     print("gD:\t"); print(gD); print("\n");   // gD:   gmem_ptr[32b](GMEM_ADDR_D + offset_for_mma_tile) o (_128,_256):(256,_1)
   } __syncthreads();
@@ -192,6 +197,8 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   //
   // Mma partitioning for A and B
   //
+  // Note: Partitioned tensors use tXgY naming convention:
+  //  tXgY -> The partitioning pattern tX applied to tensor gY
 
   auto mma_v = get<0>(mma_coord_vmnk);
   ThrMMA cta_mma = tiled_mma.get_slice(mma_v);   // Use Peer CTA coordinate
@@ -200,9 +207,9 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor tCgC = cta_mma.partition_C(gC);         // (MmaC, NumMma_M, NumMma_N)
   Tensor tCgD = cta_mma.partition_C(gD);         // (MmaC, NumMma_M, NumMma_N)
 
-  if (shouldPrint) {
-    print("tCgA:\t"); print(tCgA); print("\n");  // tCgA:   ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
-    print("tCgB:\t"); print(tCgB); print("\n");  // tCgB:   ArithTuple(_0,0) o ((_256,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
+  if (thread0()) {
+    print("tCgA:\t"); print(tCgA); print("\n");  // tCgA:   gmem_ptr[16b](GMEM_ADDR_A + offset_for_mma_tile + offset_for_mma) o ((_128,_16),_1,_4,4):((256,_1),_0,_16,_64)
+    print("tCgB:\t"); print(tCgB); print("\n");  // tCgB:   gmem_ptr[16b](GMEM_ADDR_B + offset_for_mma_tile + offset_for_mma) o ((_256,_16),_1,_4,4):((_1,256),_0,4096,16384)
     print("tCgC:\t"); print(tCgC); print("\n");  // tCgC:   gmem_ptr[32b](GMEM_ADDR_C + offset_for_mma_tile + offset_for_mma) o ((_128,_256),_1,_1):((256,_1),_0,_0)
     print("tCgD:\t"); print(tCgD); print("\n");  // tCgD:   gmem_ptr[32b](GMEM_ADDR_D + offset_for_mma_tile + offset_for_mma) o ((_128,_256),_1,_1):((256,_1),_0,_0)
   } __syncthreads();
@@ -224,112 +231,31 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   uint32_t elect_one_thr  = cute::elect_one_sync();
   uint32_t elect_one_warp = (threadIdx.x / 32 == 0);
 
-
   using TmemAllocator = cute::TMEM::Allocator1Sm;
   TmemAllocator tmem_allocator{};
 
-#if defined(BLACKWELL_ENABLED)
   if (elect_one_warp) {
     tmem_allocator.allocate(TmemAllocator::Sm100TmemCapacityColumns, &shared_storage.tmem_base_ptr);
   }
   __syncthreads(); // Wait for all threads until warp0 allocates TMEM
   tCtAcc.data() = shared_storage.tmem_base_ptr;
-#endif
 
-  if (shouldPrint) {
+  if (thread0()) {
     print("tCsA:\t"); print(tCsA); print("\n");     // tCsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
     print("tCsB:\t"); print(tCsB); print("\n");     // tCsB:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_B) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
     print("tCrA:\t"); print(tCrA); print("\n");     // tCrA:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
     print("tCrB:\t"); print(tCrB); print("\n");     // tCrB:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
     print("tCtAcc:\t"); print(tCtAcc); print("\n"); // tCtAcc: tmem_[32b](TMEM_ADDR) o ((_128,_256),_1,_1):((_65536,_1),_0,_0)
-  } 
-  __syncthreads();
-
-  // TMA Setup
-  //
-  //   These are TMA partitionings, which have a dedicated custom partitioner.
-  //   In this example, the TMA multicasts the loads across multiple CTAs.
-  //   Loads of A are multicasted along the N dimension of the cluster_shape_MNK and
-  //   Loads of B are multicasted along the M dimension of the cluster_shape_MNK.
-  //      Any multicasting must be in conformance with tma_x constructed with make_tma_atom on host.
-  //   For A tensor: The group_modes<0,3> transforms the (MmaA, NumMma_M, NumMma_K, Tiles_K)-shaped tensor
-  //      into ((MmaA, NumMma_M, NumMma_K), Tiles_K). The partitioning only pays attention to mode-0, the MMA Tile MK.
-  //   For B tensor: The group_modes<0,3> transforms the (MmaB, NumMma_M, NumMma_K, Tiles_K)-shaped tensor
-  //      into ((MmaB, NumMma_M, NumMma_K), Tiles_K). The partitioning only pays attention to mode-0, the MMA Tile NK.
-  //   Simply put, the TMA will be responsible for everything in mode-0 with a single call to cute::copy.
-  //   The tma_partition reorders and offsets mode-0 according to the tma_x atom and the multicast info.
-
-  // Each CTA with the same m-coord will load a portion of A
-  // Each CTA with the same n-coord will load a portion of B
-  // Multicast behavior for CTA 1,2 in the cluster
-  //   A multicast            B multicast
-  //    0  1  2  3             0  1  2  3
-  // 0  -  -  -  -          0  -  -  X  -
-  // 1  X  X  X  X          1  -  -  X  -
-  // 2  -  -  -  -          2  -  -  X  -
-  // 3  -  -  -  -          3  -  -  X  -
-  // tma_multicast_mask_A = 0x2222
-  // tma_multicast_mask_B = 0x0F00
-  // mma_multicast_mask_C = 0x2F22
-
-  // Construct the CTA-in-Cluster coordinate for multicasting
-  auto cta_in_cluster_coord_vmnk = cluster_layout_vmnk.get_flat_coord(int(cute::block_rank_in_cluster()));
-  if(shouldPrint){
-    printf("BlockCoord(%d,%d)\n", blockIdx.x, blockIdx.y);
-    printf("cta_in_cluster_coord: "); print(cta_in_cluster_coord_vmnk); printf("\n");
-    printf("get<2>(cta_in_cluster_coord): "); print(get<2>(cta_in_cluster_coord_vmnk)); printf("\n");
-    printf("cluster_layout_vmnk: "); print(cluster_layout_vmnk); printf("\n");
-    printf("make_layout(size<2>)(cluster_layout_vmnk): "); print(make_layout(size<2>(cluster_layout_vmnk))); printf("\n");
-    printf("grouped(tCsA): "); print(group_modes<0,3>(tCsA)); printf("\n");
-    printf("grouped(tCgA): "); print(group_modes<0,3>(tCgA)); printf("\n");
-  }
-  // Project the cluster_layout for tma_A along the N-modes
-  auto [tAgA, tAsA] = tma_partition(tma_atom_A,
-                                    get<2>(cta_in_cluster_coord_vmnk),          // The CTA coordinate along N mode of the cluster
-                                    make_layout(size<2>(cluster_layout_vmnk)),  // The CTA layout along N mode of the cluster
-                                    group_modes<0,3>(tCsA), group_modes<0,3>(tCgA));
-
-  // Project the cluster_layout for tma_B along the M-modes
-  auto [tBgB, tBsB] = tma_partition(tma_atom_B,
-                                    get<1>(cta_in_cluster_coord_vmnk),          // The CTA coordinate along M mode of the cluster
-                                    make_layout(size<1>(cluster_layout_vmnk)),  // The CTA layout along M mode of the cluster
-                                    group_modes<0,3>(tCsB), group_modes<0,3>(tCgB));
-
-  // Project the cluster_layout and cta_coord along the N-mode to determine the multicast mask for A
-  uint16_t tma_mcast_mask_a = create_tma_multicast_mask<2>(cluster_layout_vmnk, cta_in_cluster_coord_vmnk);
-  // Project the cluster_layout and cta_coord along the M-mode to determine the multicast mask for B
-  uint16_t tma_mcast_mask_b = create_tma_multicast_mask<1>(cluster_layout_vmnk, cta_in_cluster_coord_vmnk);
-  // Project the cluster_layout and cta_coord along the VM + VN-modes to determine the multicast mask for C
-  uint16_t mma_mcast_mask_c = create_tma_multicast_mask<0,1>(cluster_layout_vmnk, cta_in_cluster_coord_vmnk) |
-                              create_tma_multicast_mask<0,2>(cluster_layout_vmnk, cta_in_cluster_coord_vmnk);
-
-  // Calculate total bytes that TMA will transfer each tile to track completion
-  int tma_transaction_bytes = sizeof(make_tensor_like(tAsA))
-                            + sizeof(make_tensor_like(tBsB));
-
-  if (shouldPrint) {
-    print("tAgA:\t"); print(tAgA); print("\n");  // tAgA:   ArithTuple(_0,0) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
-    print("tAsA:\t"); print(tAsA); print("\n");  // tAsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_8192,_1)):((_1,_0))
-    print("tBgB:\t"); print(tBgB); print("\n");  // tBgB:   ArithTuple(_0,0) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
-    print("tBsB:\t"); print(tBsB); print("\n");  // tBsB:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_B) o ((_16384,_1)):((_1,_0))
-    printf("tma_transaction_bytes: %d\n", tma_transaction_bytes);
-    printf("tma_mcast_mask_a: %x\n", tma_mcast_mask_a);
-    printf("tma_mcast_mask_b: %x\n", tma_mcast_mask_b);
-    printf("mma_mcast_mask_c: %x\n", mma_mcast_mask_c);
   } __syncthreads();
 
-#if defined(BLACKWELL_ENABLED)
+
   // Barrier Initialization
   // Barriers in SMEM initialized by a single thread.
   if (elect_one_warp && elect_one_thr) {
-    // The number of CTAs that participates in multicast operation with this CTA (for both A and B matrices)
-    int num_mcast_participants = size<1>(cluster_layout_vmnk) + size<2>(cluster_layout_vmnk) - 1;
-    cute::initialize_barrier(shared_storage.mma_barrier, /* num_ctas */ num_mcast_participants);
-    cute::initialize_barrier(shared_storage.tma_barrier, /* num_threads */ 1);
+    cute::initialize_barrier(shared_storage.mma_barrier, /* num_ctas */ 1);
   }
   int mma_barrier_phase_bit = 0;  // Each barrier has an associated phase_bit.
-  int tma_barrier_phase_bit = 0;  // Each barrier has an associated phase_bit.
-  cute::cluster_sync();           // Make sure all threads across all CTAs in Cluster observe barrier initialization.
+  __syncthreads();                // Make sure all threads observe barrier initialization.
 
   // Step 2: The Mainloop.
 
@@ -341,20 +267,17 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   {
     // Step 2a: Load A and B tiles
 
-    // TMA Load Operations:
-    // - Execute asynchronous TMA loads with single thread
-    // - Set transaction bytes and execute with barrier
-    if (elect_one_warp && elect_one_thr) {
-      cute::set_barrier_transaction_bytes(shared_storage.tma_barrier, tma_transaction_bytes);
-      copy(tma_atom_A.with(shared_storage.tma_barrier,tma_mcast_mask_a), tAgA(_,k_tile), tAsA); // Load MmaTile_M x MmaTile_K A tile
-      copy(tma_atom_B.with(shared_storage.tma_barrier,tma_mcast_mask_b), tBgB(_,k_tile), tBsB); // Load MmaTile_N x MmaTile_K B tile
-    }
+    // Using auto-vectorized copy operation:
+    // - Utilizes 128 threads for parallel data transfer
+    // - Copy operations are distributed efficiently across all threads
+    // - CuTe can automatically determine optimal vector width
+    cooperative_copy<128>(threadIdx.x, tCgA(_,_,_,k_tile), tCsA); // Load MmaTile_M x MmaTile_K A tile
+    cooperative_copy<128>(threadIdx.x, tCgB(_,_,_,k_tile), tCsB); // Load MmaTile_N x MmaTile_K B tile
 
     // Step 2b: Execute the MMAs for this tile
 
-    // Wait for TMA loads to SMEM to complete
-    cute::wait_barrier(shared_storage.tma_barrier, tma_barrier_phase_bit);
-    tma_barrier_phase_bit ^= 1;
+    // Wait for loads to SMEM to complete with __syncthreads()
+    __syncthreads();
 
     // tcgen05.mma instructions require single-thread execution:
     // - Only one warp performs the MMA-related loop operations
@@ -367,7 +290,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
         tiled_mma.accumulate_ = UMMA::ScaleOut::One;
       }
       // Ensure MMAs are completed, only then we can reuse the A and B SMEM.
-      cutlass::arch::umma_arrive_multicast(&shared_storage.mma_barrier, mma_mcast_mask_c); // All multicasting CTAs encoded in mask.
+      cutlass::arch::umma_arrive(&shared_storage.mma_barrier);
     }
     // Wait MMAs to complete to avoid overwriting the A and B SMEM.
     cute::wait_barrier(shared_storage.mma_barrier, mma_barrier_phase_bit);
@@ -405,7 +328,6 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
     tmem_allocator.release_allocation_lock();
     tmem_allocator.free(shared_storage.tmem_base_ptr, TmemAllocator::Sm100TmemCapacityColumns);
   }
-#endif
 }
 
 template <class TypeA, class LayoutA,
@@ -517,48 +439,10 @@ void gemm_host_f16xf16_f32_f32_tnt(TypeA const* device_ptr_A, LayoutA layout_A,
   // Now we can find the SMEM allocation size
   using SMEMStorage = SharedStorage<TypeA, TypeB, decltype(sA_layout), decltype(sB_layout)>;
 
-  //
-  // TMA Descriptor Creation (Host Side)
-  //
-
   // The cluster shape and layout
-  auto cluster_shape = make_shape(Int<4>{}, Int<4>{}, Int<1>{});
+  auto cluster_shape = make_shape(Int<1>{}, Int<1>{}, Int<1>{});
   Layout cluster_layout_vmnk = tiled_divide(make_layout(cluster_shape),
                                             make_tile(typename decltype(tiled_mma)::AtomThrID{}));
-
-  Copy_Atom tma_atom_A = make_tma_atom(
-      SM90_TMA_LOAD_MULTICAST{},       // TMA load operation with multicast
-      mA,                              // Source GMEM tensor
-      sA_layout,                       // Destination SMEM layout
-      select<0,2>(mma_tiler),          // MK Tiler for TMA operation
-      size<2>(cluster_layout_vmnk)     // The number of CTAs in the N-mode for multicasting
-    );
-  Tensor mA_tma = tma_atom_A.get_tma_tensor(shape(mA));   // (Gemm_M, Gemm_K)
-
-  print("tma_atom_A:\t"); print(tma_atom_A); print("\n");
-  // tma_atom_A:     Copy_Atom
-  //  ThrID:        _1:_0
-  //  ValLayoutSrc: (_1,_8192):(_0,_1)
-  //  ValLayoutDst: (_1,_8192):(_0,_1)
-  //  ValLayoutRef: (_1,_8192):(_0,_1)
-  //  ValueType:    16b
-
-  Copy_Atom tma_atom_B = make_tma_atom(
-      SM90_TMA_LOAD_MULTICAST{},      // TMA load operation with multicast
-      mB,                             // Source GMEM tensor
-      sB_layout,                      // Destination SMEM layout
-      select<1,2>(mma_tiler),         // NK Tiler for TMA operation
-      size<1>(cluster_layout_vmnk)    // The number of CTAs in the M-mode for multicasting
-    );
-  Tensor mB_tma = tma_atom_B.get_tma_tensor(shape(mB));   // (Gemm_N, Gemm_K)
-
-  print("tma_atom_B:\t"); print(tma_atom_B); print("\n");
-  // tma_atom_B:     Copy_Atom
-  //  ThrID:        _1:_0
-  //  ValLayoutSrc: (_1,_16384):(_0,_1)
-  //  ValLayoutDst: (_1,_16384):(_0,_1)
-  //  ValLayoutRef: (_1,_16384):(_0,_1)
-  //  ValueType:    16b
 
   ////////////////////////////////////////////////////////////
   //
@@ -573,9 +457,8 @@ void gemm_host_f16xf16_f32_f32_tnt(TypeA const* device_ptr_A, LayoutA layout_A,
   int  smemBytes = sizeof(SMEMStorage);
 
   auto* kernel_ptr = &gemm_device<SMEMStorage,
-                                  decltype(mA_tma), decltype(mB_tma), decltype(mC), decltype(mD),
+                                  decltype(mA), decltype(mB), decltype(mC), decltype(mD),
                                   decltype(mma_tiler), decltype(tiled_mma), decltype(cluster_shape),
-                                  decltype(tma_atom_A), decltype(tma_atom_B), // Includes the TMA descriptor.
                                   Alpha, Beta>;
 
   // Set kernel attributes (set SMEM)
@@ -588,9 +471,8 @@ void gemm_host_f16xf16_f32_f32_tnt(TypeA const* device_ptr_A, LayoutA layout_A,
 
   cutlass::ClusterLaunchParams params = {dimGrid, dimBlock, dimCluster, smemBytes};
   cutlass::Status status = cutlass::launch_kernel_on_cluster(params, (void const*) kernel_ptr,
-                                                             mA_tma, mB_tma, mC, mD,
+                                                             mA, mB, mC, mD,
                                                              mma_tiler, tiled_mma, cluster_shape,
-                                                             tma_atom_A, tma_atom_B,
                                                              alpha, beta);
   CUTE_CHECK_LAST();
 
@@ -603,8 +485,6 @@ void gemm_host_f16xf16_f32_f32_tnt(TypeA const* device_ptr_A, LayoutA layout_A,
 
 int main(int argc, char** argv)
 {
-
-#if !defined(CUTLASS_ARCH_MMA_SM100_SUPPORTED)
   cudaDeviceProp props;
   int current_device_id;
   cudaGetDevice(&current_device_id);
@@ -620,7 +500,8 @@ int main(int argc, char** argv)
     std::cerr << "  Found " << props.major << "." << props.minor << std::endl;
     return -1;
   }
-#endif
+
+#if defined(CUTLASS_ARCH_MMA_SM100_SUPPORTED)
 
   int Gemm_M = 512;
   if (argc >= 2)
@@ -699,7 +580,6 @@ int main(int argc, char** argv)
                                 device_C.data().get(), layout_C,
                                 device_D.data().get(), layout_D,
                                 alpha, beta);
-#if 0
   // Host allocation for D tensor and transfer D tensor from device to host
   thrust::host_vector<TypeD> host_D = device_D;
   // Create a non-owning CuTe tensor for D tensor
@@ -726,6 +606,9 @@ int main(int argc, char** argv)
                                                                        type_str_d, host_tensor_D, host_reference_tensor_D);
   bool success = relative_error <= 0.0;
   std::cout << "Execution is " << ((success) ? "successful." : "failed.") << std::endl;
+#else
+  std::cout << "CUTLASS_ARCH_MMA_SM100_SUPPORTED must be enabled, but it is not. Test is waived \n" << std::endl;
 #endif
+
   return 0;
 }

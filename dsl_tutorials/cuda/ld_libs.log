@@ -1,0 +1,283 @@
+   3933863:	find library=libpthread.so.0 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v4:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v3:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v2:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/avx512_1/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/avx512_1:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/avx512_1/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/avx512_1:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/avx512_1/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/avx512_1:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/avx512_1/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/avx512_1:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/x86_64:/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v4/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v3/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/glibc-hwcaps/x86-64-v2/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/avx512_1/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/avx512_1/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/haswell/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/avx512_1/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/avx512_1/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/tls/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/avx512_1/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/avx512_1/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/haswell/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/avx512_1/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/avx512_1/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/x86_64/libpthread.so.0
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libpthread.so.0
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libpthread.so.0
+   3933863:	
+   3933863:	find library=libdl.so.2 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libdl.so.2
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libdl.so.2
+   3933863:	
+   3933863:	find library=libutil.so.1 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libutil.so.1
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libutil.so.1
+   3933863:	
+   3933863:	find library=libm.so.6 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libm.so.6
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libm.so.6
+   3933863:	
+   3933863:	find library=librt.so.1 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/librt.so.1
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/librt.so.1
+   3933863:	
+   3933863:	find library=libc.so.6 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libc.so.6
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libc.so.6
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib64/ld-linux-x86-64.so.2
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libc.so.6
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/librt.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libm.so.6
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libutil.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libdl.so.2
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libpthread.so.0
+   3933863:	
+   3933863:	
+   3933863:	initialize program: python
+   3933863:	
+   3933863:	
+   3933863:	transferring control: python
+   3933863:	
+   3933863:	find library=libstdc++.so.6 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libstdc++.so.6
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libstdc++.so.6
+   3933863:	
+   3933863:	find library=libgcc_s.so.1 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libgcc_s.so.1
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libgcc_s.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libgcc_s.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libstdc++.so.6
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/utils/_get_handle.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/utils.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/driver.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/cydriver.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cydriver.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/runtime.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/cyruntime.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cyruntime.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cyruntime_ptds.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/cyruntime/cyruntime.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	
+   3933863:	calling init: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/cyruntime/utils.cpython-312-x86_64-linux-gnu.so
+   3933863:	
+   3933863:	find library=libdxcore.so [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libdxcore.so
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	 search path=/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v4:/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v3:/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2:/lib/x86_64-linux-gnu/tls/haswell/avx512_1/x86_64:/lib/x86_64-linux-gnu/tls/haswell/avx512_1:/lib/x86_64-linux-gnu/tls/haswell/x86_64:/lib/x86_64-linux-gnu/tls/haswell:/lib/x86_64-linux-gnu/tls/avx512_1/x86_64:/lib/x86_64-linux-gnu/tls/avx512_1:/lib/x86_64-linux-gnu/tls/x86_64:/lib/x86_64-linux-gnu/tls:/lib/x86_64-linux-gnu/haswell/avx512_1/x86_64:/lib/x86_64-linux-gnu/haswell/avx512_1:/lib/x86_64-linux-gnu/haswell/x86_64:/lib/x86_64-linux-gnu/haswell:/lib/x86_64-linux-gnu/avx512_1/x86_64:/lib/x86_64-linux-gnu/avx512_1:/lib/x86_64-linux-gnu/x86_64:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v4:/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v3:/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2:/usr/lib/x86_64-linux-gnu/tls/haswell/avx512_1/x86_64:/usr/lib/x86_64-linux-gnu/tls/haswell/avx512_1:/usr/lib/x86_64-linux-gnu/tls/haswell/x86_64:/usr/lib/x86_64-linux-gnu/tls/haswell:/usr/lib/x86_64-linux-gnu/tls/avx512_1/x86_64:/usr/lib/x86_64-linux-gnu/tls/avx512_1:/usr/lib/x86_64-linux-gnu/tls/x86_64:/usr/lib/x86_64-linux-gnu/tls:/usr/lib/x86_64-linux-gnu/haswell/avx512_1/x86_64:/usr/lib/x86_64-linux-gnu/haswell/avx512_1:/usr/lib/x86_64-linux-gnu/haswell/x86_64:/usr/lib/x86_64-linux-gnu/haswell:/usr/lib/x86_64-linux-gnu/avx512_1/x86_64:/usr/lib/x86_64-linux-gnu/avx512_1:/usr/lib/x86_64-linux-gnu/x86_64:/usr/lib/x86_64-linux-gnu:/lib/glibc-hwcaps/x86-64-v4:/lib/glibc-hwcaps/x86-64-v3:/lib/glibc-hwcaps/x86-64-v2:/lib/tls/haswell/avx512_1/x86_64:/lib/tls/haswell/avx512_1:/lib/tls/haswell/x86_64:/lib/tls/haswell:/lib/tls/avx512_1/x86_64:/lib/tls/avx512_1:/lib/tls/x86_64:/lib/tls:/lib/haswell/avx512_1/x86_64:/lib/haswell/avx512_1:/lib/haswell/x86_64:/lib/haswell:/lib/avx512_1/x86_64:/lib/avx512_1:/lib/x86_64:/lib:/usr/lib/glibc-hwcaps/x86-64-v4:/usr/lib/glibc-hwcaps/x86-64-v3:/usr/lib/glibc-hwcaps/x86-64-v2:/usr/lib/tls/haswell/avx512_1/x86_64:/usr/lib/tls/haswell/avx512_1:/usr/lib/tls/haswell/x86_64:/usr/lib/tls/haswell:/usr/lib/tls/avx512_1/x86_64:/usr/lib/tls/avx512_1:/usr/lib/tls/x86_64:/usr/lib/tls:/usr/lib/haswell/avx512_1/x86_64:/usr/lib/haswell/avx512_1:/usr/lib/haswell/x86_64:/usr/lib/haswell:/usr/lib/avx512_1/x86_64:/usr/lib/avx512_1:/usr/lib/x86_64:/usr/lib		(system search path)
+   3933863:	  trying file=/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v4/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v3/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/haswell/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/tls/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/haswell/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v4/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v3/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/haswell/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/tls/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/haswell/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64-linux-gnu/libdxcore.so
+   3933863:	  trying file=/lib/glibc-hwcaps/x86-64-v4/libdxcore.so
+   3933863:	  trying file=/lib/glibc-hwcaps/x86-64-v3/libdxcore.so
+   3933863:	  trying file=/lib/glibc-hwcaps/x86-64-v2/libdxcore.so
+   3933863:	  trying file=/lib/tls/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/tls/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/tls/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/tls/haswell/libdxcore.so
+   3933863:	  trying file=/lib/tls/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/tls/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/tls/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/tls/libdxcore.so
+   3933863:	  trying file=/lib/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/haswell/libdxcore.so
+   3933863:	  trying file=/lib/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/avx512_1/libdxcore.so
+   3933863:	  trying file=/lib/x86_64/libdxcore.so
+   3933863:	  trying file=/lib/libdxcore.so
+   3933863:	  trying file=/usr/lib/glibc-hwcaps/x86-64-v4/libdxcore.so
+   3933863:	  trying file=/usr/lib/glibc-hwcaps/x86-64-v3/libdxcore.so
+   3933863:	  trying file=/usr/lib/glibc-hwcaps/x86-64-v2/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/haswell/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/tls/libdxcore.so
+   3933863:	  trying file=/usr/lib/haswell/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/haswell/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/haswell/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/haswell/libdxcore.so
+   3933863:	  trying file=/usr/lib/avx512_1/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/avx512_1/libdxcore.so
+   3933863:	  trying file=/usr/lib/x86_64/libdxcore.so
+   3933863:	  trying file=/usr/lib/libdxcore.so
+   3933863:	
+   3933863:	find library=libcuda.so.1 [0]; searching
+   3933863:	 search path=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib		(RPATH from file python)
+   3933863:	  trying file=/home/jeromeku/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/bin/../lib/libcuda.so.1
+   3933863:	 search cache=/etc/ld.so.cache
+   3933863:	  trying file=/lib/x86_64-linux-gnu/libcuda.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling init: /lib/x86_64-linux-gnu/libcuda.so.1
+   3933863:	
+   3933863:	
+   3933863:	calling fini: python [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libutil.so.1 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/utils/_get_handle.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/utils.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/driver.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/cydriver.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cydriver.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/runtime.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/cyruntime.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cyruntime.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_bindings/cyruntime_ptds.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/cyruntime/cyruntime.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /home/jeromeku/cutlass/.cutlass-env/lib/python3.12/site-packages/cuda/bindings/_lib/cyruntime/utils.cpython-312-x86_64-linux-gnu.so [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libstdc++.so.6 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libgcc_s.so.1 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libcuda.so.1 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/librt.so.1 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libpthread.so.0 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libdl.so.2 [0]
+   3933863:	
+   3933863:	
+   3933863:	calling fini: /lib/x86_64-linux-gnu/libm.so.6 [0]
+   3933863:	
