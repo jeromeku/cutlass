@@ -158,6 +158,9 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
             CUTE_GRID_CONSTANT TmaAtomB const tma_atom_B,
             Alpha alpha, Beta beta)
 {
+  int ctaID_in_cluster = 1;
+  bool shouldPrint = threadIdx.x == 0 && threadIdx.y == 0 && int(cute::block_rank_in_cluster()) == ctaID_in_cluster;
+
   // Step 1: The Prologue.
 
   // The CTA layout within the Cluster: (V,M,N,K) -> CTA idx
@@ -183,7 +186,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor gC = local_tile(mC, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
   Tensor gD = local_tile(mD, mma_tiler, mma_coord, Step<_1,_1, X>{});  // (MmaTile_M, MmaTile_N)
 
-  if (thread0()) {
+  if (shouldPrint) {
     print("mA:\t"); print(mA); print("\n");   // mA:   ArithTuple(_0,_0) o (512,256):(_1@1,_1@0)
     print("mB:\t"); print(mB); print("\n");   // mB:   ArithTuple(_0,_0) o (1024,256):(_1@1,_1@0)
     print("mC:\t"); print(mC); print("\n");   // mC:   gmem_ptr[32b](GMEM_ADDR_C) o (512,1024):(1024,_1)
@@ -216,7 +219,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   Tensor tCgC = cta_mma.partition_C(gC);         // (MmaC, NumMma_M, NumMma_N)
   Tensor tCgD = cta_mma.partition_C(gD);         // (MmaC, NumMma_M, NumMma_N)
 
-  if (thread0()) {
+  if (shouldPrint) {
     print("tCgA:\t"); print(tCgA); print("\n");  // tCgA:   ArithTuple(_0,0) o ((_128,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
     print("tCgB:\t"); print(tCgB); print("\n");  // tCgB:   ArithTuple(_0,0) o ((_256,_16),_1,_4,4):((_1@1,_1@0),_0,_16@0,_64@0)
     print("tCgC:\t"); print(tCgC); print("\n");  // tCgC:   gmem_ptr[32b](GMEM_ADDR_C + offset_for_mma_tile + offset_for_mma) o ((_128,_256),_1,_1):((256,_1),_0,_0)
@@ -252,7 +255,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
 
 #endif
 
-  if (thread0()) {
+  if (shouldPrint) {
     print("tCsA:\t"); print(tCsA); print("\n");     // tCsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_128,_16),_1,_4):((_64,_1),_0,_16)
     print("tCsB:\t"); print(tCsB); print("\n");     // tCsB:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_B) o ((_256,_16),_1,_4):((_64,_1),_0,_16)
     print("tCrA:\t"); print(tCrA); print("\n");     // tCrA:   UMMA::DescriptorIterator o (_1,_1,_4):(_0,_0,_2)
@@ -306,7 +309,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   int tma_transaction_bytes = size<0>(cluster_layout_vmnk) * sizeof(make_tensor_like(tAsA))
                             + size<0>(cluster_layout_vmnk) * sizeof(make_tensor_like(tBsB));
 
-  if (thread0()) {
+  if (shouldPrint) {
     print("tAgA:\t"); print(tAgA); print("\n");  // tAgA:   ArithTuple(_0,0) o (((_64,_128),_1),4):(((_1@0,_1@1),_0),_64@0)
     print("tAsA:\t"); print(tAsA); print("\n");  // tAsA:   Sw<3,4,3>_smem_ptr[16b](SMEM_ADDR_A) o ((_8192,_1)):((_1,_0))
     print("tBgB:\t"); print(tBgB); print("\n");  // tBgB:   ArithTuple(_0,0) o (((_64,_256),_1),4):(((_1@0,_1@1),_0),_64@0)
@@ -319,7 +322,7 @@ gemm_device(ATensor mA,                      // (Gemm_M, Gemm_K)
   
   __syncthreads();
 
-  #if defined(BLACKWELL_ENABLED)
+  #if 1
   // Barrier Initialization
   // Barriers in SMEM should be initialized by a single thread.
   if (elect_one_warp && elect_one_thr) {
