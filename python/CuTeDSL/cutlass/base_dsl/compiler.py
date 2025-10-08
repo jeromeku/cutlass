@@ -141,7 +141,6 @@ class Compiler:
         enable_verifier=False,
     ):
         """Compiles the module by invoking the pipeline."""
-        breakpoint()
         try:
             pm = self.passmanager.PassManager.parse(pipeline)
             pm.enable_verifier(enable_verifier)

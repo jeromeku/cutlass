@@ -3,10 +3,11 @@ import cutlass.cute as cute
 from cutlass.cute.runtime import from_dlpack
 import numpy as np
 
-def override_compiler(dump_ptx: bool = False, dump_dir="cute_pipeline"):
+def override_compiler(dump_ptx: bool = False, print_before: bool = False, print_after: bool = True, dump_dir="cute_pipeline"):
     from cutlass.base_dsl import compiler as _cute_compiler    
     CompilationError = _cute_compiler.CompilationError
     
+    assert print_before ^ print_after, "Only one of print_before or print_after can be True"
     def _compile(
         self: _cute_compiler.Compiler,
         module,
@@ -29,9 +30,9 @@ def override_compiler(dump_ptx: bool = False, dump_dir="cute_pipeline"):
 
             # Print before/after every pass, include locations, and dump each pass’s IR to a directory.
             pm.enable_ir_printing(
-                print_before_all=True,
-                print_after_all=True,
-                print_module_scope=True,
+                print_before_all=print_before,
+                print_after_all=print_after,
+                print_module_scope=False,
                 print_after_change=False,
                 print_after_failure=True,
                 enable_debug_info=True,
@@ -76,5 +77,5 @@ def load_and_store(res: cute.Tensor, a: cute.Tensor, b: cute.Tensor):
 a = np.ones(12).reshape((3, 4)).astype(np.float32)
 b = np.ones(12).reshape((3, 4)).astype(np.float32)
 c = np.zeros(12).reshape((3, 4)).astype(np.float32)
-override_compiler(dump_ptx=False, dump_dir="jit_dump")
+override_compiler(dump_ptx=False, print_before=True, print_after=False, dump_dir="jit_dump_after")
 load_and_store(from_dlpack(c), from_dlpack(a), from_dlpack(b))
