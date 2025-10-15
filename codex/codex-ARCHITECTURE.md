@@ -20,18 +20,18 @@ Quick Map: Stages → Entry Points (clickable)
 
 | Stage | Entry point | File |
 |---|---|---|
-| Decorators | `CuTeDSL.jit` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:494) |
-| Decorators | `CuTeDSL.kernel` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:504) |
-| AST | `DSLPreprocessor` | [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131) |
-| IR build (host) | `_func` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:1327](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1327) |
-| IR build (kernel) | `_kernel_helper` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318) |
-| GPU module | `_build_gpu_module` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206) |
-| Pipeline str | `_get_pipeline` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214) |
-| Pipeline inject | `preprocess_pipeline` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:973](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:973) |
-| Compile + JIT | `Compiler.compile_and_jit` | [python/CuTeDSL/cutlass/base_dsl/compiler.py:168](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/compiler.py:168) |
-| CUBIN load | `JitExecutor.update_jit_cuda_modules` | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259) |
-| CUBIN walk | `walk_module_and_get_cubin_data` | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330) |
-| Host call | `ExecutionEngine.lookup` | [python/CuTeDSL/cutlass/_mlir/execution_engine.py:13](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/_mlir/execution_engine.py:13) |
+| Decorators | `CuTeDSL.jit` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L494) |
+| Decorators | `CuTeDSL.kernel` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L504) |
+| AST | `DSLPreprocessor` | [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py#L131) |
+| IR build (host) | `_func` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:1327](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1327) |
+| IR build (kernel) | `_kernel_helper` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L318) |
+| GPU module | `_build_gpu_module` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L206) |
+| Pipeline str | `_get_pipeline` | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L214) |
+| Pipeline inject | `preprocess_pipeline` | [python/CuTeDSL/cutlass/base_dsl/dsl.py:973](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973) |
+| Compile + JIT | `Compiler.compile_and_jit` | [python/CuTeDSL/cutlass/base_dsl/compiler.py:168](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L168) |
+| CUBIN load | `JitExecutor.update_jit_cuda_modules` | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L259) |
+| CUBIN walk | `walk_module_and_get_cubin_data` | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L330) |
+| Host call | `ExecutionEngine.lookup` | [python/CuTeDSL/cutlass/_mlir/execution_engine.py:13](../python/CuTeDSL/cutlass/_mlir/execution_engine.py#L13) |
 
 Key Modules And Responsibilities
 
@@ -84,7 +84,7 @@ def kernel(cls, *dargs, **dkwargs):
   - `python/CuTeDSL/cutlass/base_dsl/dsl.py:1094` creates a host `func.func` with `llvm.emit_c_interface`.
   - DSL converts Python arguments to MLIR types/values (`python/CuTeDSL/cutlass/base_dsl/dsl.py:842` `generate_mlir_function_types`, plus adapters in `python/CuTeDSL/cutlass/base_dsl/runtime/jit_arg_adapters.py`).
 
-Example: building the host function op ([source](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1090))
+Example: building the host function op ([source](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1090))
 
 ```python
 # python/CuTeDSL/cutlass/base_dsl/dsl.py:1090-1100
@@ -102,7 +102,7 @@ with ir.InsertionPoint(fop.add_entry_block()):
     - A host‐side `gpu.launch_func` referencing `@kernels::@kernel_*` with launch/cluster dims and dynamic shared memory (built in `python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377`–`python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:420`).
   - Device body uses Cute/Cute‑NVGPU ops emitted by Python wrappers (`python/CuTeDSL/cutlass/_mlir/dialects/*`, `python/CuTeDSL/cutlass/cute/*`).
 
-Example: generating launch_func ([source](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377))
+Example: generating launch_func ([source](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L377))
 
 ```python
 # python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377-410
@@ -126,7 +126,7 @@ token = gpu.launch_func(
   - `python/CuTeDSL/cutlass/base_dsl/dsl.py:973` `preprocess_pipeline` injects `toolkitPath` and target arch (e.g., `cubin-chip=sm_90a`).
   - `python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:222` appends `external-kernel-for-gpu-launch`.
 
-Example: pipeline injection ([source](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:973))
+Example: pipeline injection ([source](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973))
 
 ```python
 # python/CuTeDSL/cutlass/base_dsl/dsl.py:973-1001
@@ -156,7 +156,7 @@ if opt_str:
 - Host function invocation
   - `execution_engine.ExecutionEngine.lookup` returns a `CFUNCTYPE(void(void**))` entrypoint for functions with `llvm.emit_c_interface` (`python/CuTeDSL/cutlass/_mlir/execution_engine.py:13`).
 
-Code excerpt (CUBIN walk and extraction) ([source](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330))
+Code excerpt (CUBIN walk and extraction) ([source](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L330))
 
 ```python
 # python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330-354

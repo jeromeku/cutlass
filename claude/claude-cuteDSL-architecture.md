@@ -85,7 +85,7 @@ CuTeDSL is a Python-embedded DSL for writing high-performance CUDA kernels using
 The complete compilation pipeline from Python AST to executable CUDA kernel:
 
 ### Stage 1: Decoration and Registration
-**Location:** [cutlass/cute/__init__.py:175-176](cutlass/cute/__init__.py#L175-L176)
+**Location:** [cutlass/cute/__init__.py:175-176](../python/CuTeDSL/cutlass/cute/__init__.py#L175-L176)
 ```python
 jit = _dsl.CuTeDSL.jit
 kernel = _dsl.CuTeDSL.kernel
@@ -97,11 +97,11 @@ When you decorate a function with `@cute.jit` or `@cute.kernel`, it:
 3. Returns a wrapper that triggers compilation on first call
 
 **Key Source Files:**
-- [cutlass/base_dsl/dsl.py:493-520](cutlass/base_dsl/dsl.py#L493-L520) - `BaseDSL.jit()` classmethod
-- [cutlass/base_dsl/dsl.py:522-570](cutlass/base_dsl/dsl.py#L522-L570) - `BaseDSL.kernel()` classmethod
+- [cutlass/base_dsl/dsl.py:493-520](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L493-L520) - `BaseDSL.jit()` classmethod
+- [cutlass/base_dsl/dsl.py:522-570](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L522-L570) - `BaseDSL.kernel()` classmethod
 
 ### Stage 2: AST Preprocessing (Optional)
-**Location:** [cutlass/base_dsl/ast_preprocessor.py](cutlass/base_dsl/ast_preprocessor.py)
+**Location:** [cutlass/base_dsl/ast_preprocessor.py](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py)
 
 If `preprocess=True` (default), the DSL transforms Python AST before execution:
 
@@ -116,7 +116,7 @@ If `preprocess=True` (default), the DSL transforms Python AST before execution:
 - `DSLPreprocessor.visit_While()` - line 600+
 
 ### Stage 3: Function Execution and IR Building
-**Location:** [cutlass/base_dsl/dsl.py:600-850](cutlass/base_dsl/dsl.py#L600-L850)
+**Location:** [cutlass/base_dsl/dsl.py:600-850](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L600-L850)
 
 When the wrapped function is called:
 
@@ -133,11 +133,11 @@ When the wrapped function is called:
 - Returns `KernelLauncher` that can be invoked with `.launch()`
 
 **Key Source Lines:**
-- [cutlass/base_dsl/dsl.py:600-650](cutlass/base_dsl/dsl.py#L600-L650) - `BaseDSL._func()`
-- [cutlass/cutlass_dsl/cutlass.py:318-400](cutlass/cutlass_dsl/cutlass.py#L318-L400) - `_kernel_helper()`
+- [cutlass/base_dsl/dsl.py:600-650](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L600-L650) - `BaseDSL._func()`
+- [cutlass/cutlass_dsl/cutlass.py:318-400](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L318-L400) - `_kernel_helper()`
 
 ### Stage 4: MLIR Dialect Operations
-**Location:** [cutlass/_mlir/dialects/](cutlass/_mlir/dialects/)
+**Location:** [cutlass/_mlir/dialects/](../python/CuTeDSL/cutlass/_mlir/dialects/)
 
 During Python function execution, DSL operations generate MLIR ops:
 
@@ -157,7 +157,7 @@ During Python function execution, DSL operations generate MLIR ops:
 - `_nvvm_ops_gen.py` - NVVM intrinsics (348K LOC)
 
 ### Stage 5: MLIR Pass Pipeline Execution
-**Location:** [cutlass/base_dsl/compiler.py:135-161](cutlass/base_dsl/compiler.py#L135-L161)
+**Location:** [cutlass/base_dsl/compiler.py:135-161](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L135-L161)
 
 The pipeline string (default: `"builtin.module(cute-to-nvvm{cubin-format=bin})"`) is executed:
 
@@ -168,7 +168,7 @@ pm.run(module.operation)
 ```
 
 **Pipeline Processing:**
-1. **Architecture injection** - [cutlass/base_dsl/dsl.py:973-1000](cutlass/base_dsl/dsl.py#L973-L1000)
+1. **Architecture injection** - [cutlass/base_dsl/dsl.py:973-1000](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973-L1000)
    - Injects `toolkitPath`, `arch` into pass options
    - Example: `cute-to-nvvm{arch=sm_90a toolkitPath=/usr/local/cuda-12.3}`
 
@@ -183,11 +183,11 @@ pm.run(module.operation)
    - Embeds in `gpu.binary` operation
 
 **Key Source Lines:**
-- [cutlass/base_dsl/compiler.py:93-166](cutlass/base_dsl/compiler.py#L93-L166) - `Compiler` class
-- [cutlass/cutlass_dsl/cutlass.py:214-224](cutlass/cutlass_dsl/cutlass.py#L214-L224) - Pipeline string construction
+- [cutlass/base_dsl/compiler.py:93-166](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L93-L166) - `Compiler` class
+- [cutlass/cutlass_dsl/cutlass.py:214-224](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L214-L224) - Pipeline string construction
 
 ### Stage 6: CUBIN Extraction and Module Loading
-**Location:** [cutlass/base_dsl/jit_executor.py:259-297](cutlass/base_dsl/jit_executor.py#L259-L297)
+**Location:** [cutlass/base_dsl/jit_executor.py:259-297](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L259-L297)
 
 After compilation, the runtime extracts CUBIN from MLIR:
 
@@ -207,11 +207,11 @@ def walk_module_and_get_cubin_data(self, module, sym, callback):
 5. Cache in `JitExecutor.cuda_modules`
 
 **Key Source Lines:**
-- [cutlass/base_dsl/jit_executor.py:330-358](cutlass/base_dsl/jit_executor.py#L330-L358) - `walk_module_and_get_cubin_data()`
-- [cutlass/base_dsl/jit_executor.py:259-297](cutlass/base_dsl/jit_executor.py#L259-L297) - `update_jit_cuda_modules()`
+- [cutlass/base_dsl/jit_executor.py:330-358](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L330-L358) - `walk_module_and_get_cubin_data()`
+- [cutlass/base_dsl/jit_executor.py:259-297](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L259-L297) - `update_jit_cuda_modules()`
 
 ### Stage 7: Kernel Launch
-**Location:** [cutlass/base_dsl/jit_executor.py:228-258](cutlass/base_dsl/jit_executor.py#L228-L258)
+**Location:** [cutlass/base_dsl/jit_executor.py:228-258](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L228-L258)
 
 When `JitExecutor.__call__()` is invoked:
 
@@ -305,7 +305,7 @@ cutlass/python/CuTeDSL/
 
 ### Python to MLIR Type Mapping
 
-**Location:** [cutlass/base_dsl/typing.py:200-350](cutlass/base_dsl/typing.py#L200-L350)
+**Location:** [cutlass/base_dsl/typing.py:200-350](../python/CuTeDSL/cutlass/base_dsl/typing.py#L200-L350)
 
 | Python Type | CuTe Type | MLIR Type |
 |-------------|-----------|-----------|
@@ -323,9 +323,9 @@ cutlass/python/CuTeDSL/
 3. `is_dynamic_expression(obj)` - Check if contains runtime values
 
 **Key Functions:**
-- [cutlass/base_dsl/typing.py:264-310](cutlass/base_dsl/typing.py#L264-L310) - `get_mlir_types()`
-- [cutlass/base_dsl/typing.py:312-360](cutlass/base_dsl/typing.py#L312-L360) - `get_c_pointers()`
-- [cutlass/base_dsl/dsl.py:161-173](cutlass/base_dsl/dsl.py#L161-L173) - `is_dynamic_expression()`
+- [cutlass/base_dsl/typing.py:264-310](../python/CuTeDSL/cutlass/base_dsl/typing.py#L264-L310) - `get_mlir_types()`
+- [cutlass/base_dsl/typing.py:312-360](../python/CuTeDSL/cutlass/base_dsl/typing.py#L312-L360) - `get_c_pointers()`
+- [cutlass/base_dsl/dsl.py:161-173](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L161-L173) - `is_dynamic_expression()`
 
 ### MLIR Dialect Hierarchy
 
@@ -373,7 +373,7 @@ for k in cutlass.range(k_tiles):  # scf.for in MLIR
 ```
 
 **Implementation:**
-- [cutlass/base_dsl/ast_helpers.py:350-400](cutlass/base_dsl/ast_helpers.py#L350-L400) - `const_expr()`, `dynamic_expr()`
+- [cutlass/base_dsl/ast_helpers.py:350-400](../python/CuTeDSL/cutlass/base_dsl/ast_helpers.py#L350-L400) - `const_expr()`, `dynamic_expr()`
 - Compile-time expressions are evaluated during Python execution
 - Runtime expressions generate MLIR SSA values
 
@@ -476,15 +476,15 @@ The default pipeline `"builtin.module(cute-to-nvvm{cubin-format=bin})"` expands 
 - `opt-level=3` - LLVM optimization level
 
 **Source Location:**
-- Pipeline string construction: [cutlass/cutlass_dsl/cutlass.py:214-224](cutlass/cutlass_dsl/cutlass.py#L214-L224)
-- Pipeline preprocessing: [cutlass/base_dsl/dsl.py:973-1000](cutlass/base_dsl/dsl.py#L973-L1000)
-- Pipeline execution: [cutlass/base_dsl/compiler.py:135-161](cutlass/base_dsl/compiler.py#L135-L161)
+- Pipeline string construction: [cutlass/cutlass_dsl/cutlass.py:214-224](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L214-L224)
+- Pipeline preprocessing: [cutlass/base_dsl/dsl.py:973-1000](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973-L1000)
+- Pipeline execution: [cutlass/base_dsl/compiler.py:135-161](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L135-L161)
 
 ## Debugging and Introspection
 
 ### Environment Variables
 
-CuTeDSL provides extensive environment variables for debugging (documented in [cutlass/base_dsl/env_manager.py:247-270](cutlass/base_dsl/env_manager.py#L247-L270)):
+CuTeDSL provides extensive environment variables for debugging (documented in [cutlass/base_dsl/env_manager.py:247-270](../python/CuTeDSL/cutlass/base_dsl/env_manager.py#L247-L270)):
 
 **Printing/Debugging:**
 ```bash
@@ -578,7 +578,7 @@ constexpr_args = executor.get_constexpr_args()
 
 ### Logging Infrastructure
 
-**Logger Setup:** [cutlass/base_dsl/utils/logger.py](cutlass/base_dsl/utils/logger.py)
+**Logger Setup:** [cutlass/base_dsl/utils/logger.py](../python/CuTeDSL/cutlass/base_dsl/utils/logger.py)
 
 ```python
 from cutlass.base_dsl.utils.logger import log
@@ -602,15 +602,15 @@ This enables timing for:
 - Compilation time
 - Kernel execution time
 
-**Source:** [cutlass/base_dsl/utils/timer.py](cutlass/base_dsl/utils/timer.py)
+**Source:** [cutlass/base_dsl/utils/timer.py](../python/CuTeDSL/cutlass/base_dsl/utils/timer.py)
 
 ## Example Trace: dense_gemm.py
 
-Let's trace the compilation of [examples/python/CuTeDSL/hopper/dense_gemm.py](../../examples/python/CuTeDSL/hopper/dense_gemm.py) step by step:
+Let's trace the compilation of [examples/python/CuTeDSL/hopper/dense_gemm.py](../examples/python/CuTeDSL/hopper/dense_gemm.py) step by step:
 
 ### Step 1: Class Instantiation (Host Side)
 
-**File:** [dense_gemm.py:1503](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L1503)
+**File:** [dense_gemm.py:1503](../examples/python/CuTeDSL/hopper/dense_gemm.py#L1503)
 ```python
 gemm = HopperWgmmaGemmKernel(acc_dtype, tile_shape_mn, cluster_shape_mn)
 ```
@@ -621,7 +621,7 @@ gemm = HopperWgmmaGemmKernel(acc_dtype, tile_shape_mn, cluster_shape_mn)
 
 ### Step 2: JIT Decoration
 
-**File:** [dense_gemm.py:372-379](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L372-L379)
+**File:** [dense_gemm.py:372-379](../examples/python/CuTeDSL/hopper/dense_gemm.py#L372-L379)
 ```python
 @cute.jit
 def __call__(self, a: cute.Tensor, b: cute.Tensor, c: cute.Tensor, stream: cuda.CUstream):
@@ -629,8 +629,8 @@ def __call__(self, a: cute.Tensor, b: cute.Tensor, c: cute.Tensor, stream: cuda.
 ```
 
 **What happens:**
-1. `cute.jit` → `cutlass.cutlass_dsl.CuTeDSL.jit()` (line 175 in [cute/__init__.py](cutlass/cute/__init__.py#L175))
-2. Calls `BaseDSL.jit()` → [cutlass/base_dsl/dsl.py:493-520](cutlass/base_dsl/dsl.py#L493-L520)
+1. `cute.jit` → `cutlass.cutlass_dsl.CuTeDSL.jit()` (line 175 in [cute/__init__.py](../python/CuTeDSL/cutlass/cute/__init__.py#L175))
+2. Calls `BaseDSL.jit()` → [cutlass/base_dsl/dsl.py:493-520](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L493-L520)
 3. Returns `jit_runner_decorator` that wraps `__call__`
 4. Wrapped function stores reference to DSL singleton
 
@@ -641,7 +641,7 @@ def __call__(self, a: cute.Tensor, b: cute.Tensor, c: cute.Tensor, stream: cuda.
 
 ### Step 3: Kernel Decoration
 
-**File:** [dense_gemm.py:482-496](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L482-L496)
+**File:** [dense_gemm.py:482-496](../examples/python/CuTeDSL/hopper/dense_gemm.py#L482-L496)
 ```python
 @cute.kernel
 def kernel(self, tma_atom_a, mA_mkl, tma_atom_b, mB_nkl, ...):
@@ -649,8 +649,8 @@ def kernel(self, tma_atom_a, mA_mkl, tma_atom_b, mB_nkl, ...):
 ```
 
 **What happens:**
-1. `cute.kernel` → `cutlass.cutlass_dsl.CuTeDSL.kernel()` (line 176 in [cute/__init__.py](cutlass/cute/__init__.py#L176))
-2. Calls `BaseDSL.kernel()` → [cutlass/base_dsl/dsl.py:522-570](cutlass/base_dsl/dsl.py#L522-L570)
+1. `cute.kernel` → `cutlass.cutlass_dsl.CuTeDSL.kernel()` (line 176 in [cute/__init__.py](../python/CuTeDSL/cutlass/cute/__init__.py#L176))
+2. Calls `BaseDSL.kernel()` → [cutlass/base_dsl/dsl.py:522-570](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L522-L570)
 3. Returns `device_jit_decorator` that wraps `kernel` method
 4. Wrapped function creates `KernelLauncher` object
 
@@ -664,15 +664,15 @@ def kernel(self, tma_atom_a, mA_mkl, tma_atom_b, mB_nkl, ...):
 (Due to length constraints, the full trace with 13 steps spanning AST preprocessing, IR generation, MLIR pass execution, CUBIN extraction, and kernel launch is omitted here. The key insight is that each Python operation in the kernel body generates corresponding MLIR operations, which are then lowered through multiple dialects until reaching CUBIN.)
 
 **Key Operations:**
-- [dense_gemm.py:752-760](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L752-L760) - TMA load generates `nvgpu.tma.async.load`
-- [dense_gemm.py:811-817](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L811-L817) - GEMM generates `nvgpu.wgmma.mma_async`
-- [dense_gemm.py:931](../../examples/python/CuTeDSL/hopper/dense_gemm.py#L931) - Barriers generate `nvvm.barrier0`
+- [dense_gemm.py:752-760](../examples/python/CuTeDSL/hopper/dense_gemm.py#L752-L760) - TMA load generates `nvgpu.tma.async.load`
+- [dense_gemm.py:811-817](../examples/python/CuTeDSL/hopper/dense_gemm.py#L811-L817) - GEMM generates `nvgpu.wgmma.mma_async`
+- [dense_gemm.py:931](../examples/python/CuTeDSL/hopper/dense_gemm.py#L931) - Barriers generate `nvvm.barrier0`
 
 ## Cross-Compilation and Architecture Override
 
 ### Current Architecture Detection
 
-**Location:** [cutlass/base_dsl/env_manager.py:66-89](cutlass/base_dsl/env_manager.py#L66-L89)
+**Location:** [cutlass/base_dsl/env_manager.py:66-89](../python/CuTeDSL/cutlass/base_dsl/env_manager.py#L66-L89)
 
 ```python
 def detect_gpu_arch(prefix):
@@ -767,13 +767,13 @@ python my_blackwell_kernel.py
 CuTeDSL provides architecture-specific helpers:
 
 **Hopper (sm_90a):**
-- [cutlass/utils/hopper_helpers.py](cutlass/utils/hopper_helpers.py)
-- [cutlass/pipeline/sm90.py](cutlass/pipeline/sm90.py)
+- [cutlass/utils/hopper_helpers.py](../python/CuTeDSL/cutlass/utils/hopper_helpers.py)
+- [cutlass/pipeline/sm90.py](../python/CuTeDSL/cutlass/pipeline/sm90.py)
 - WGMMA instructions, TMA multicast, cluster-level operations
 
 **Blackwell (sm_100):**
-- [cutlass/utils/blackwell_helpers.py](cutlass/utils/blackwell_helpers.py)
-- [cutlass/pipeline/sm100.py](cutlass/pipeline/sm100.py)
+- [cutlass/utils/blackwell_helpers.py](../python/CuTeDSL/cutlass/utils/blackwell_helpers.py)
+- [cutlass/pipeline/sm100.py](../python/CuTeDSL/cutlass/pipeline/sm100.py)
 - Enhanced WGMMA, expanded TMA, new atomic operations
 
 **Usage:**
@@ -845,32 +845,32 @@ Look for:
 ## Summary of Key Source Files
 
 **Compilation Pipeline:**
-- [cutlass/base_dsl/dsl.py](cutlass/base_dsl/dsl.py) - Core DSL logic, function tracing
-- [cutlass/base_dsl/compiler.py](cutlass/base_dsl/compiler.py) - MLIR pass manager wrapper
-- [cutlass/base_dsl/jit_executor.py](cutlass/base_dsl/jit_executor.py) - Runtime execution, CUBIN loading
-- [cutlass/cutlass_dsl/cutlass.py](cutlass/cutlass_dsl/cutlass.py) - CuTe-specific DSL implementation
+- [cutlass/base_dsl/dsl.py](../python/CuTeDSL/cutlass/base_dsl/dsl.py) - Core DSL logic, function tracing
+- [cutlass/base_dsl/compiler.py](../python/CuTeDSL/cutlass/base_dsl/compiler.py) - MLIR pass manager wrapper
+- [cutlass/base_dsl/jit_executor.py](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py) - Runtime execution, CUBIN loading
+- [cutlass/cutlass_dsl/cutlass.py](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py) - CuTe-specific DSL implementation
 
 **AST Transformation:**
-- [cutlass/base_dsl/ast_preprocessor.py](cutlass/base_dsl/ast_preprocessor.py) - Python AST rewriting
+- [cutlass/base_dsl/ast_preprocessor.py](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py) - Python AST rewriting
 
 **Type System:**
-- [cutlass/base_dsl/typing.py](cutlass/base_dsl/typing.py) - DSL type system
-- [cutlass/cute/typing.py](cutlass/cute/typing.py) - CuTe-specific types
+- [cutlass/base_dsl/typing.py](../python/CuTeDSL/cutlass/base_dsl/typing.py) - DSL type system
+- [cutlass/cute/typing.py](../python/CuTeDSL/cutlass/cute/typing.py) - CuTe-specific types
 
 **MLIR Integration:**
-- [cutlass/_mlir/ir.py](cutlass/_mlir/ir.py) - MLIR IR Python bindings
-- [cutlass/_mlir/dialects/cute.py](cutlass/_mlir/dialects/cute.py) - CuTe dialect
-- [cutlass/_mlir/dialects/nvgpu.py](cutlass/_mlir/dialects/nvgpu.py) - NVGPU dialect
+- [cutlass/_mlir/ir.py](../python/CuTeDSL/cutlass/_mlir/ir.py) - MLIR IR Python bindings
+- [cutlass/_mlir/dialects/cute.py](../python/CuTeDSL/cutlass/_mlir/dialects/cute.py) - CuTe dialect
+- [cutlass/_mlir/dialects/nvgpu.py](../python/CuTeDSL/cutlass/_mlir/dialects/nvgpu.py) - NVGPU dialect
 
 **User-Facing API:**
-- [cutlass/cute/__init__.py](cutlass/cute/__init__.py) - Main exports
-- [cutlass/cute/core.py](cutlass/cute/core.py) - Core CuTe operations
+- [cutlass/cute/__init__.py](../python/CuTeDSL/cutlass/cute/__init__.py) - Main exports
+- [cutlass/cute/core.py](../python/CuTeDSL/cutlass/cute/core.py) - Core CuTe operations
 
 **Environment and Caching:**
-- [cutlass/base_dsl/env_manager.py](cutlass/base_dsl/env_manager.py) - Environment variables
-- [cutlass/base_dsl/cache_helpers.py](cutlass/base_dsl/cache_helpers.py) - Compilation cache
+- [cutlass/base_dsl/env_manager.py](../python/CuTeDSL/cutlass/base_dsl/env_manager.py) - Environment variables
+- [cutlass/base_dsl/cache_helpers.py](../python/CuTeDSL/cutlass/base_dsl/cache_helpers.py) - Compilation cache
 
 **Runtime:**
-- [cutlass/base_dsl/runtime/cuda.py](cutlass/base_dsl/runtime/cuda.py) - CUDA Driver API wrappers
+- [cutlass/base_dsl/runtime/cuda.py](../python/CuTeDSL/cutlass/base_dsl/runtime/cuda.py) - CUDA Driver API wrappers
 
 This architecture document provides a comprehensive overview of CuTeDSL's internal structure and compilation pipeline. For specific implementation details, refer to the source files mentioned throughout this document.

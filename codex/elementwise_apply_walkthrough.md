@@ -3,7 +3,7 @@
 This document dissects the entire compilation pipeline for the Ampere example elementwise_apply.py, line by line, with deep call stacks and source links you can Ctrl/Cmd+Click in VSCode.
 
 Target file:
-- [examples/python/CuTeDSL/ampere/elementwise_apply.py](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py)
+- [examples/python/CuTeDSL/ampere/elementwise_apply.py](../examples/python/CuTeDSL/ampere/elementwise_apply.py)
 
 We cover three main stages:
 - Python AST Parsing and transformation
@@ -20,22 +20,22 @@ CuTeDSL optionally rewrites Python AST to normalize control flow (for/if/while) 
 
 - Entry points
   - Decorators are resolved through `BaseDSL.jit` and `BaseDSL.kernel`:
-    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:494) `def jit(...)`
-    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:504) `def kernel(...)`
+    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L494) `def jit(...)`
+    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L504) `def kernel(...)`
   - When a decorated function is first called, `_preprocess_and_execute` runs the AST preprocessor:
-    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:556](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:556)
+    - [python/CuTeDSL/cutlass/base_dsl/dsl.py:556](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L556)
 
 - AST machinery
-  - Transformer class: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131) `class DSLPreprocessor`
-  - Build transformed module: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:445](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:445) `def transform(...)`
-  - Execute the transformed code: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:238](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:238) `def exec(...)`
+  - Transformer class: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py#L131) `class DSLPreprocessor`
+  - Build transformed module: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:445](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py#L445) `def transform(...)`
+  - Execute the transformed code: [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:238](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py#L238) `def exec(...)`
 
 - What gets transformed
   - `cutlass.range_constexpr(...)` loops → fully unrolled. `range_dynamic`/`range` → `scf.for` (later during IR).
   - `if cutlass.const_expr(...)` → compile-time folding; dynamic `if` → `scf.if` (later during IR).
 
 - Example from elementwise_apply_kernel
-  - Lines [100–103](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:100) and [121–125](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:121) use `cutlass.range_constexpr(len(...))` to iterate at compile time. The preprocessor ensures these loops become straight-line IR (no runtime loop).
+  - Lines [100–103](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L100-L103) and [121–125](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L121-L125) use `cutlass.range_constexpr(len(...))` to iterate at compile time. The preprocessor ensures these loops become straight-line IR (no runtime loop).
 
 Inputs/Outputs
 
@@ -60,14 +60,14 @@ if hasattr(func, "_transformed_ast"):
 The host entry (`elementwise_apply`) is decorated with `@cute.jit` and orchestrates kernel launch.
 
 - Where `@cute.jit` attaches
-  - Example declaration: [examples/python/CuTeDSL/ampere/elementwise_apply.py:171](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:171)
-  - Decorator root: [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:494)
+  - Example declaration: [examples/python/CuTeDSL/ampere/elementwise_apply.py:171](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L171)
+  - Decorator root: [python/CuTeDSL/cutlass/base_dsl/dsl.py:494](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L494)
 
 - Host IR building
-  - Overall flow: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1327](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1327) `_func`
-  - Convert args to MLIR types: [python/CuTeDSL/cutlass/base_dsl/dsl.py:842](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:842) `generate_mlir_function_types`
-  - Create module + host function: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1067](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1067) `generate_original_ir`
-  - `func.func` for host entry: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1094](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1094)
+  - Overall flow: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1327](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1327) `_func`
+  - Convert args to MLIR types: [python/CuTeDSL/cutlass/base_dsl/dsl.py:842](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L842) `generate_mlir_function_types`
+  - Create module + host function: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1067](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1067) `generate_original_ir`
+  - `func.func` for host entry: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1094](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1094)
 
 Snippet: building host `func.func`
 
@@ -83,12 +83,12 @@ with ir.InsertionPoint(fop.add_entry_block()):
 
 - Launch site (user code)
   - The compiled host function constructs tilers/layouts then invokes the kernel launcher:
-    - [examples/python/CuTeDSL/ampere/elementwise_apply.py:265](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:265) `elementwise_apply_kernel(...).launch(...)`
+    - [examples/python/CuTeDSL/ampere/elementwise_apply.py:265](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L265) `elementwise_apply_kernel(...).launch(...)`
 
 - Pipeline options injection and compilation
-  - Pipeline preprocess: [python/CuTeDSL/cutlass/base_dsl/dsl.py:973](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:973)
-  - Compile + JIT: [python/CuTeDSL/cutlass/base_dsl/compiler.py:168](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/compiler.py:168)
-  - PassManager execution: [python/CuTeDSL/cutlass/base_dsl/compiler.py:135](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/compiler.py:135)
+  - Pipeline preprocess: [python/CuTeDSL/cutlass/base_dsl/dsl.py:973](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973)
+  - Compile + JIT: [python/CuTeDSL/cutlass/base_dsl/compiler.py:168](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L168)
+  - PassManager execution: [python/CuTeDSL/cutlass/base_dsl/compiler.py:135](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L135)
 
 Snippet: pipeline option stitching
 
@@ -116,14 +116,14 @@ Inputs/Outputs
 The device kernel `elementwise_apply_kernel` is decorated with `@cute.kernel`.
 
 - Where `@cute.kernel` attaches
-  - Example: [examples/python/CuTeDSL/ampere/elementwise_apply.py:78](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:78)
-  - Decorator root: [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:504)
-  - Kernel generation wrapper: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1536](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1536) `kernel_launcher`
+  - Example: [examples/python/CuTeDSL/ampere/elementwise_apply.py:78](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L78)
+  - Decorator root: [python/CuTeDSL/cutlass/base_dsl/dsl.py:504](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L504)
+  - Kernel generation wrapper: [python/CuTeDSL/cutlass/base_dsl/dsl.py:1536](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1536) `kernel_launcher`
 
 - Building the GPU container and kernel function
-  - GPU module creation: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206) `_build_gpu_module`
-  - Kernel func op emission is delegated to helper: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318) `_kernel_helper`
-  - Launch op generation: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377)
+  - GPU module creation: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L206) `_build_gpu_module`
+  - Kernel func op emission is delegated to helper: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:318](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L318) `_kernel_helper`
+  - Launch op generation: [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:377](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L377)
 
 Snippet: generating `gpu.launch_func`
 
@@ -146,24 +146,24 @@ token = gpu.launch_func(
   - Slice/index ops like `t[idx]` map into Cute/Cute-NVGPU ops which later lower to NVGPU/NVVM.
   - Examples (per-thread slicing and fragment ops):
     - Slicing by CTA and thread:
-      - [examples/.../elementwise_apply.py:95](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:95) `ctaInputs = [t[cta_coord] for t in inputs]`
-      - [examples/.../elementwise_apply.py:117](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:117) `thrInputs = [t[thr_coord] for t in tidfrgInputs]`
+      - [examples/.../elementwise_apply.py:95](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L95) `ctaInputs = [t[cta_coord] for t in inputs]`
+      - [examples/.../elementwise_apply.py:117](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L117) `thrInputs = [t[thr_coord] for t in tidfrgInputs]`
     - Fragment creation and predication:
-      - [examples/.../elementwise_apply.py:128](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:128)
-      - [examples/.../elementwise_apply.py:132](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:132)
+      - [examples/.../elementwise_apply.py:128](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L128)
+      - [examples/.../elementwise_apply.py:132](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L132)
     - Copy and compute:
-      - [examples/.../elementwise_apply.py:157](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:157)
-      - [examples/.../elementwise_apply.py:162](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:162)
-      - [examples/.../elementwise_apply.py:168](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:168)
+      - [examples/.../elementwise_apply.py:157](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L157)
+      - [examples/.../elementwise_apply.py:162](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L162)
+      - [examples/.../elementwise_apply.py:168](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L168)
 
 - Lowering to CUBIN and binding
   - Pass pipeline (`cute-to-nvvm`) lowers Cute/Cute-NVGPU → NVGPU/NVVM and embeds CUBIN:
-    - [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214)
+    - [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:214](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L214)
   - CUBIN extraction and CUDA Driver binding:
-    - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330)
-    - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259)
+    - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L330)
+  - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:259](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L259)
   - Host function entry lookup/invoke:
-    - [python/CuTeDSL/cutlass/_mlir/execution_engine.py:13](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/_mlir/execution_engine.py:13)
+    - [python/CuTeDSL/cutlass/_mlir/execution_engine.py:13](../python/CuTeDSL/cutlass/_mlir/execution_engine.py#L13)
 
 Inputs/Outputs
 
@@ -177,15 +177,15 @@ Inputs/Outputs
 
 | Line(s) | Code (trimmed) | What happens |
 |---|---|---|
-| [78](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:78) | `@cute.kernel` | Registers device function with DSL; callsite becomes a launcher. |
-| [79–86](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:79) | `def elementwise_apply_kernel(op, inputs, gC, cC, shape, tv_layout)` | Kernel signature → MLIR function params (Cute types map to MLIR types via DSL typing). |
-| [87–125](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:87) | Thread/Block ids, CTA/thread slicing | Emits indexing ops and layout compositions (Cute/NVGPU). |
-| [128–136](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:128) | Fragments + predicate fragment | Local register fragments; pred computed for bounds. |
-| [146–155](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:146) | `make_copy_atom` load/store | Configures copy atoms (vector width, dtype). |
-| [157–168](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:157) | `cute.copy` + compute + store | Loads into frags, applies `op` (constexpr specialized), stores back. |
-| [171](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:171) | `@cute.jit` | Host entry decoration. |
-| [172–239](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:172) | `def elementwise_apply(...)` | Host code computes tilers/layouts and tile tensors. |
-| [265–276](/home/jeromeku/cutlass/examples/python/CuTeDSL/ampere/elementwise_apply.py:265) | `.launch(grid=..., block=..., stream=...)` | Enqueues `gpu.launch_func` with kernel symbol and runtime operands. |
+| [78](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L78) | `@cute.kernel` | Registers device function with DSL; callsite becomes a launcher. |
+| [79–86](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L79-L86) | `def elementwise_apply_kernel(op, inputs, gC, cC, shape, tv_layout)` | Kernel signature → MLIR function params (Cute types map to MLIR types via DSL typing). |
+| [87–125](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L87-L125) | Thread/Block ids, CTA/thread slicing | Emits indexing ops and layout compositions (Cute/NVGPU). |
+| [128–136](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L128-L136) | Fragments + predicate fragment | Local register fragments; pred computed for bounds. |
+| [146–155](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L146-L155) | `make_copy_atom` load/store | Configures copy atoms (vector width, dtype). |
+| [157–168](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L157-L168) | `cute.copy` + compute + store | Loads into frags, applies `op` (constexpr specialized), stores back. |
+| [171](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L171) | `@cute.jit` | Host entry decoration. |
+| [172–239](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L172-L239) | `def elementwise_apply(...)` | Host code computes tilers/layouts and tile tensors. |
+| [265–276](../examples/python/CuTeDSL/ampere/elementwise_apply.py#L265-L276) | `.launch(grid=..., block=..., stream=...)` | Enqueues `gpu.launch_func` with kernel symbol and runtime operands. |
 
 ---
 
@@ -210,14 +210,14 @@ Where the key pieces live
 
 | Responsibility | File |
 |---|---|
-| Decorators (jit/kernel) | [python/CuTeDSL/cutlass/base_dsl/dsl.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:494) |
-| AST transform/exec | [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py:131) |
-| Host IR creation | [python/CuTeDSL/cutlass/base_dsl/dsl.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:1067) |
-| GPU module/kernel | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py:206) |
-| Pipeline injection | [python/CuTeDSL/cutlass/base_dsl/dsl.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/dsl.py:973) |
-| PassManager+JIT | [python/CuTeDSL/cutlass/base_dsl/compiler.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/compiler.py:135) |
-| CUBIN extraction | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:330) |
-| Host invoke lookup | [python/CuTeDSL/cutlass/_mlir/execution_engine.py](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/_mlir/execution_engine.py:13) |
+| Decorators (jit/kernel) | [python/CuTeDSL/cutlass/base_dsl/dsl.py](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L494) |
+| AST transform/exec | [python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py](../python/CuTeDSL/cutlass/base_dsl/ast_preprocessor.py#L131) |
+| Host IR creation | [python/CuTeDSL/cutlass/base_dsl/dsl.py](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L1067) |
+| GPU module/kernel | [python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py](../python/CuTeDSL/cutlass/cutlass_dsl/cutlass.py#L206) |
+| Pipeline injection | [python/CuTeDSL/cutlass/base_dsl/dsl.py](../python/CuTeDSL/cutlass/base_dsl/dsl.py#L973) |
+| PassManager+JIT | [python/CuTeDSL/cutlass/base_dsl/compiler.py](../python/CuTeDSL/cutlass/base_dsl/compiler.py#L135) |
+| CUBIN extraction | [python/CuTeDSL/cutlass/base_dsl/jit_executor.py](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L330) |
+| Host invoke lookup | [python/CuTeDSL/cutlass/_mlir/execution_engine.py](../python/CuTeDSL/cutlass/_mlir/execution_engine.py#L13) |
 
 ---
 
@@ -226,8 +226,8 @@ Where the key pieces live
 The `op` parameter is annotated `cutlass.Constexpr` in both host and kernel signatures. At compile time, the DSL specializes the kernel for the provided operator (e.g., `operator.add` vs user lambda), so there is no runtime function pointer overhead inside the device code.
 
 - Adapter/filtering of constexpr vs runtime args happens in:
-  - [python/CuTeDSL/cutlass/base_dsl/runtime/jit_arg_adapters.py:20](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/runtime/jit_arg_adapters.py:20) `is_arg_spec_constexpr`
-  - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:54](/home/jeromeku/cutlass/python/CuTeDSL/cutlass/base_dsl/jit_executor.py:54) `filter_runtime_arg_spec`
+  - [python/CuTeDSL/cutlass/base_dsl/runtime/jit_arg_adapters.py:20](../python/CuTeDSL/cutlass/base_dsl/runtime/jit_arg_adapters.py#L20) `is_arg_spec_constexpr`
+  - [python/CuTeDSL/cutlass/base_dsl/jit_executor.py:54](../python/CuTeDSL/cutlass/base_dsl/jit_executor.py#L54) `filter_runtime_arg_spec`
 
 This is why, when benchmarking the compiled function, the `op` is omitted (already specialized), as noted in the example.
 

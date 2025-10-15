@@ -296,6 +296,12 @@ class DSLPreprocessor(ast.NodeTransformer):
         """
         Transforms a function.
         """
+        import inspect
+        
+        for i in range(5, 0, -1):
+            frame = inspect.stack()[i]
+            print(f"DSLPREPROCESSOR_DEBUG::{__file__}:callstack{i}: {frame.filename}:{frame.lineno}")
+            
         # Skip if the function has already been processed
         if function_pointer in self.processed_functions:
             log().info(
