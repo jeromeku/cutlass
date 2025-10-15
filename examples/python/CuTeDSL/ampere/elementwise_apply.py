@@ -384,7 +384,7 @@ if __name__ == "__main__":
         getattr(operator, args.op),
         args.M,
         args.N,
-        dtype=cutlass.Float32,
+        dtype=cutlass.Float16,
         warmup_iterations=args.warmup_iterations,
         iterations=args.iterations,
         skip_ref_check=args.skip_ref_check,
