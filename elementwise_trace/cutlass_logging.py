@@ -30,10 +30,12 @@ def set_arch(arch: str):
     from cutlass.base_dsl import detect_gpu_arch
     os.environ.setdefault("CUTE_DSL_ARCH", detect_gpu_arch(None))
 
-def patch_cutlass_loggers(log_to_console: bool = False, log_to_file: bool = True, log_file_path: str = "cute_dsl.log", log_level: int = logging.DEBUG):
+def patch_cutlass_loggers(logdir: str = "cute_logs", log_level: int = logging.DEBUG):
     
     import cutlass.base_dsl.utils.logger as cutlass_logger
-    
+    import os
+    os.makedirs(logdir, exist_ok=True)
+
     fmt = ("%(asctime)s - %(name)s - %(levelname)s - "
            "[%(pathname)s:%(lineno)d %(funcName)s] - %(message)s")
     formatter = logging.Formatter(fmt)
@@ -47,10 +49,17 @@ def patch_cutlass_loggers(log_to_console: bool = False, log_to_file: bool = True
     #     log_file_path=log_file_path,
     #     log_level=log_level,
     # )
+    from logging import FileHandler
+    from datetime import datetime
+    dt = datetime.now().strftime("%Y%m%d_%H%M")
+    new_handler = FileHandler(os.path.join(logdir, f'{dt}.log'), mode = 'w')
+    new_handler.setFormatter(formatter)
+    new_handler.setLevel(log_level)
+    logger.addHandler(new_handler)
 
     for handler in logger.handlers:
         handler.setFormatter(formatter)
-
+    
     return logger
 
 if __name__ == "__main__":
