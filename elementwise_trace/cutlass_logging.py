@@ -30,35 +30,37 @@ def set_arch(arch: str):
     from cutlass.base_dsl import detect_gpu_arch
     os.environ.setdefault("CUTE_DSL_ARCH", detect_gpu_arch(None))
 
-def patch_cutlass_loggers(logdir: str = "cute_logs", log_level: int = logging.DEBUG):
+def patch_cutlass_loggers(log_to_console: bool = False, log_to_file: bool = False, logdir: str = "cute_logs", log_level: int = logging.DEBUG):
     
     import cutlass.base_dsl.utils.logger as cutlass_logger
     import os
-    os.makedirs(logdir, exist_ok=True)
 
+    log_to_file = log_to_file or os.environ.get("CUTE_DSL_LOG_TO_FILE", "0") == "1"
+    log_to_console = log_to_console or os.environ.get("CUTE_DSL_LOG_TO_CONSOLE", "0") == "1"
+
+    if not (log_to_console or log_to_file):
+        return
+    
     fmt = ("%(asctime)s - %(name)s - %(levelname)s - "
            "[%(pathname)s:%(lineno)d %(funcName)s] - %(message)s")
     formatter = logging.Formatter(fmt)
-    # Force the module to rebuild its logger using the new formatter.
+    
     logger = cutlass_logger.log()
-    # cutlass_logger.log = cutlass_logger.setup_log  # optional: make sure we can call it
-    # logger = cutlass_logger.setup_log(
-    #     cutlass_logger.logger.name if cutlass_logger.logger else "generic",
-    #     log_to_console=log_to_console,   # or False—match your needs
-    #     log_to_file=log_to_file,
-    #     log_file_path=log_file_path,
-    #     log_level=log_level,
-    # )
-    from logging import FileHandler
-    from datetime import datetime
-    dt = datetime.now().strftime("%Y%m%d_%H%M")
-    new_handler = FileHandler(os.path.join(logdir, f'{dt}.log'), mode = 'w')
-    new_handler.setFormatter(formatter)
-    new_handler.setLevel(log_level)
-    logger.addHandler(new_handler)
+    if log_to_file:
+        from logging import FileHandler
+        from datetime import datetime
+
+        os.makedirs(logdir, exist_ok=True)
+
+        dt = datetime.now().strftime("%Y%m%d_%H%M")
+        new_handler = FileHandler(os.path.join(logdir, f'{dt}.log'), mode = 'w')
+        new_handler.setFormatter(formatter)
+        new_handler.setLevel(log_level)
+        logger.addHandler(new_handler)
 
     for handler in logger.handlers:
         handler.setFormatter(formatter)
+        handler.setLevel(log_level)
     
     return logger
 

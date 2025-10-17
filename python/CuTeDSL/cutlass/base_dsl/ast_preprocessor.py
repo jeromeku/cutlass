@@ -236,6 +236,13 @@ class DSLPreprocessor(ast.NodeTransformer):
         return imports
 
     def exec(self, function_name, original_function, code_object, exec_globals):
+        import inspect
+        frames = inspect.stack()
+        this_frame = frames[0]
+        print(f"[{this_frame.filename}:{this_frame.lineno}]:")
+        for i in range(5, 0, -1):
+            frame = frames[i]
+            print(f" callstack{i}: {frame.filename}:{frame.lineno}")
         # Get imports from the original module
         module_imports = self._get_module_imports(original_function)
 
@@ -452,7 +459,6 @@ class DSLPreprocessor(ast.NodeTransformer):
         """
         Transforms the provided function using the preprocessor.
         """
-        breakpoint()
         self.file_name = inspect.getsourcefile(original_function)
         self.function_globals = exec_globals
         transformed_tree = self.transform_function(

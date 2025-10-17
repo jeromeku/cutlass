@@ -1249,7 +1249,6 @@ class BaseDSL:
             log().info("Started preprocessing [%s]", function_name)
             exec_globals = self._get_globals()
             transformed_ast = self.preprocessor.transform(funcBody, exec_globals)
-            breakpoint()
             if self.envar.print_after_preprocessor:
                 log().info(
                     f"# Printing unparsed AST after preprocess of func=`{function_name}` id=`{id(funcBody)}`"
