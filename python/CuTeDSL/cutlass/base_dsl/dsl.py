@@ -481,6 +481,7 @@ class BaseDSL:
             @wraps(func)
             def jit_wrapper(*args, **kwargs):
                 func_ptr = BaseDSL._preprocess_and_execute(func)
+                breakpoint()
                 return executor(func_ptr, *args, **kwargs)
 
             return jit_wrapper
@@ -1085,7 +1086,7 @@ class BaseDSL:
             module = ir.Module.create(loc=loc)
             unit_attr = ir.UnitAttr.get()
             module.operation.attributes["gpu.container_module"] = unit_attr
-
+            breakpoint()
             with ir.InsertionPoint(module.body):
                 # Always generate gpu module. It's canonicalized by the compiler when it's not used.
                 self._build_gpu_module(gpu_module_attrs)
@@ -1191,13 +1192,14 @@ class BaseDSL:
         compile_only,
         loc=None,
     ):
+        breakpoint()
         """Generate MLIR module and compile iself.T_provider."""
-        with ir.Context(), ir.Location.unknown():
+        with ir.Context() as ctx, ir.Location.unknown():
             # Convert input arguments to MLIR arguments
             exe_args, func_types, adapted_args = self.generate_mlir_function_types(
                 funcBody, function_name, args, kwargs, args_spec
             )
-
+            breakpoint()
             # Generate original ir module and its hash value.
             module, module_hash, result = self.generate_original_ir(
                 ir,
@@ -1370,6 +1372,7 @@ class BaseDSL:
 
         # Generate MLIR Context and start generating IR
         log().debug(f"Generating MLIR for function '{function_name}'")
+        breakpoint()
         result = self.generate_mlir(
             funcBody,
             canonicalized_kwargs,
