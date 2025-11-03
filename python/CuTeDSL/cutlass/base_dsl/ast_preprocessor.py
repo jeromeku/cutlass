@@ -42,7 +42,7 @@ from typing import List, Set, Dict, Any, Callable, Optional
 from types import ModuleType
 from collections import OrderedDict
 from copy import deepcopy
-
+import os
 from .common import *
 from .utils.logger import log
 
@@ -236,13 +236,15 @@ class DSLPreprocessor(ast.NodeTransformer):
         return imports
 
     def exec(self, function_name, original_function, code_object, exec_globals):
-        import inspect
-        frames = inspect.stack()
-        this_frame = frames[0]
-        print(f"[{this_frame.filename}:{this_frame.lineno}]:")
-        for i in range(5, 0, -1):
-            frame = frames[i]
-            print(f" callstack{i}: {frame.filename}:{frame.lineno}")
+        if os.environ.get("CUTE_DEBUG", "0") == "1":
+            import inspect
+            frames = inspect.stack()
+            this_frame = frames[0]
+
+            print(f"[{this_frame.filename}:{this_frame.lineno}]:")
+            for i in range(5, 0, -1):
+                frame = frames[i]
+                print(f" callstack{i}: {frame.filename}:{frame.lineno}")
         # Get imports from the original module
         module_imports = self._get_module_imports(original_function)
 
@@ -279,7 +281,7 @@ class DSLPreprocessor(ast.NodeTransformer):
             "ASTPreprocessor Executing transformed code for function [%s]",
             function_name,
         )
-        breakpoint()
+        #breakpoint()
         exec(code_object, exec_globals)
         return exec_globals.get(function_name)
 
