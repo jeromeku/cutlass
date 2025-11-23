@@ -86,6 +86,7 @@ def download_wheel(temp_dir: Path) -> Path:
                 "-m",
                 "pip",
                 "download",
+                "--pre",
                 "--no-deps",
                 package_spec,
                 "--dest",

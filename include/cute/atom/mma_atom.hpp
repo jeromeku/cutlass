@@ -310,6 +310,20 @@ struct TiledMMA : MMA_Atom
                                         make_layout(size<3>(thr_layout_vmnk_))));
     auto thr_tensor = zipped_divide(tv_tensor, thr_tile);            // ((ThrV,(ThrM,ThrK)),(FrgV,(RestM,RestK)))
 
+#if defined(DEBUG_CUTE)
+  auto print_cute = [](const char* msg, const auto& obj) {
+    std::printf("%s:%d:: %s\n", __FILE__, __LINE__, msg);
+    cute::print(obj);
+    std::printf("\n");
+  };
+  print_cute("t_tile", t_tile);
+  print_cute("t_tensor", t_tensor);
+  print_cute("a_tile", a_tile);
+  print_cute("a_tensor", a_tensor);
+  print_cute("tv_tensor", tv_tensor);
+  print_cute("thr_tile", thr_tile);
+  print_cute("thr_tensor", thr_tensor);
+#endif
     return thr_tensor;
   }
 
