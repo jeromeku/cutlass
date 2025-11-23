@@ -455,7 +455,7 @@ int main(int argc, char const **args) {
       void,
       cute::identity
     >;
-  auto mma = CollectiveOp::Arguments{};
+  auto mma = CollectiveOp::ElementA;
   print_cute("Blk_MN", Blk_MN{});
   print_cute("Blk_SF", Blk_SF{});
   print_cute("SFVectorSize", SFVecSize);
