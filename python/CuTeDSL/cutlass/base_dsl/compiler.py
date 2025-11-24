@@ -142,6 +142,14 @@ class Compiler:
         enable_verifier=False,
     ):
         """Compiles the module by invoking the pipeline."""
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        print(f"!!!CUTE_DEBUG {this_frame.filename}:{this_frame.lineno}")
+        ident = 1
+        for s in stack[1:6]:
+            print(f"{' ' * ident}-> {s.filename}:{s.lineno}")
+            ident += 1
         try:
             pm = self.passmanager.PassManager.parse(pipeline)
             pm.enable_verifier(enable_verifier)
