@@ -85,9 +85,12 @@ tma_test_device_cute(T const* g_in, T* g_out,
     constexpr int kPhaseBit = 0;
     cute::wait_barrier(tma_load_mbar[0], kPhaseBit);
     if (thread0()){
-      printf("SMem:\n");
+      printf("SMem No Swizzle:\n");
       Tensor sA_swizzled = make_tensor(make_smem_ptr(shared_storage.smem.begin()), gmem_layout);  
       cute::print_tensor(sA_swizzled);
+      printf("SMem Swizzle:\n");
+      // auto coalesced = coalesce(tAsA(_, 0));
+      cute::print_tensor(sA);    
     }
     __syncthreads();
   }
