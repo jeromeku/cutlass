@@ -2,7 +2,7 @@
 # The cutlass repo is in the external directory: ../external/cutlass/include
 
 # Set the CUTLASS_REPO_PATH to the path of the cutlass repo
-CUTLASS_REPO_PATH = /home/jk/cutlass
+CUTLASS_REPO_PATH = /home/jeromeku/cutlass
 CUTLASS_HEADERS = ${CUTLASS_REPO_PATH}/include 
 CUTLASS_TOOL_HEADERS = ${CUTLASS_REPO_PATH}/tools/util/include
 CUTLASS_TEST_HEADERS = ${CUTLASS_REPO_PATH}/test/unit/common
@@ -19,6 +19,9 @@ CUTE_DEBUG=-DDEBUG_CUTE
 .PHONY: all clean
 
 all: clean nvfp4
+
+tile_to_shape: tile_to_shape.cu
+	nvcc ${HOST_DEBUG_FLAGS} ${ARCH_FLAGS} ${CUTLASS_DEBUG_FLAG} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -o $@ $<
 
 nvfp4: nvfp4_test.cu
 	nvcc ${HOST_DEBUG_FLAGS} ${ARCH_FLAGS} ${CUTLASS_DEBUG_FLAG} ${CXX_FLAGS} -I${CUTLASS_HEADERS} -o $@ $<

@@ -1,9 +1,11 @@
-# %%
+# ruff: noqa
 from utils.logging import patch_cutlass_env
+from utils.mlir_pipeline import dump_mlir_pipeline
 REQUIRED_ARCH = "sm_100a"
 COMPILE_ARCH = REQUIRED_ARCH
 patch_cutlass_env(log_to_console=True, arch=COMPILE_ARCH)
 
+import sys
 import torch
 
 import cutlass
@@ -18,6 +20,12 @@ from cutlass.cute.runtime import from_dlpack
 from cutlass.cutlass_dsl import CuTeDSL, Arch
 from cutlass.base_dsl.env_manager import detect_gpu_arch
 from cutlass.base_dsl.compiler import CompileOptions, KeepCUBIN, KeepPTX, EnableAssertions, GenerateLineInfo, PtxasOptions
+from cutlass._mlir.dialects._cute_nvgpu_enum_gen import _cutegpuarchenum, _cutemmaoperandenum
+from cutlass._mlir.ir import Context, Location, _GlobalDebug
+
+_GlobalDebug.flag = True
+dump_mlir_pipeline("sol_kernel")
+
 actual_arch = Arch.from_string(detect_gpu_arch(None))
 required_arch = Arch.from_string(REQUIRED_ARCH)
 COMPILE_ONLY = False
@@ -25,81 +33,6 @@ COMPILE_ONLY = False
 if actual_arch < required_arch:
     print(f"Actual arch {actual_arch} < Required arch {required_arch}")
     COMPILE_ONLY = True
-
-# %% [markdown]
-# # Tour to SOL GEMM
-#
-# This notebook demonstrates how to reach SOL (Speed Of Light) GEMM (GEneral Matrix Multiplication) based on Blackwell (tcgen05) step by step.
-#
-# Before going through it, you need to get familiar with:
-#
-# - tensor.ipynb
-# - tensorssa.ipynb
-# - cute_layout_algebra.ipynb
-# - composed_layout.ipynb
-# - elementwise_add.ipynb
-# - async_pipeline.ipynb
-#
-# These ipynb files will give you a basic knowledge on how to write a kernel by using CuTeDSL.
-#
-# ## Learning Objectives
-#
-# In this tutorial, you will learn writing an efficient gemm step by step:
-# - How to implement basic GEMM kernel using CuTeDSL
-# - How to subtile the acc
-# - How to apply multi-stage by using software pipelining
-# - How to vectorize the instructions for storing out
-#
-# ## Understanding GEMM
-#
-# GEMM is one of the most important operations in linear algebra and deep learning. Given two 2D tensors A with shape $(M, K)$ and B with shape $(N, K)$, the GEMM operation $C = A \times B$ is defined as:
-#
-# $
-#     C_{i,j} = \sum_{k=0}^{K-1} A_{i,k} * B_{j,k}
-# $
-#
-# The result is a 2D tensor C with shape $(M, N)$.
-#
-# where:
-# - $i \in [0, M)$ represents the row index of $A$ and $C$
-# - $j \in [0, N)$ represents the column index of $C$ and the row index of $B$
-# - $k \in [0, K)$ repersents the column index of $A$ and $B$
-# - $A_{i,k}$, $B_{j,k}$, and $C_{i,j}$ are the elements at position $(i,k)$, $(j,k)$ and $(i,j)$ in tensors $A$, $B$, and $C$ respectively
-#
-# This operation has several important characteristics:
-#
-# 1. **Parallelizable**: Each element can be computed independently. It helps take fully use of SMs in a GPU.
-# 2. **Data Reusable**: $C_{i,:}$-s (The row $i$ of $C$) need the same data from $A_{i,:}$ while $C_{:,j}$-s (The column $j$ of $C$) need the same data from $B_{:,j}$. This data reuse pattern can help reduce the IO pressure
-# 3. **Block-friendly**: A block of elements can be processed together. Each block is a sub-problem of the whole GEMM. It helps reduce the IO pressure for each SM. It gives possibility to accelerate the computation using MMA instructions.
-# 4. **Bottleneck-flexible**: Unlike the elementwise_add, the bottleneck for GEMM is varied for different problem sizes. Let's calculate the compute/memory ratio for GEMM roughly: $ratio = \frac{M * N * K}{M*K + N*K + M*N} = \frac{1}{\frac{1}{N} + \frac{1}{M} + \frac{1}{K}}$.
-# It's related to all M, N and K. To reach good enough perf, we need different strategies for different problem sizes accordingly.
-#
-#
-# ## Naive GEMM
-#
-# Let's start with a naive implementation to establish a baseline before exploring optimizations.
-#
-# ![figure1](./images/blocked_gemm.svg "figure1: blocked gemm")
-#
-# First of all, we need to set basic configurations.
-#
-# - io_dtype: The datatype for tensors $A$, $B$, and $C$. For the most cases, it's also the input datatype of mma instructions (there're some exceptions, e.g. TF32 datatype, input transformation, etc.).
-#
-# - acc_dtype: The datatype for the accumulation. Normally, set it as FP32 to avoid overflow. As C's datatype could be different from acc_dtype, the acc data needs to be converted to io_dtype before storing out.
-#
-# - mma_inst_shape_mnk: The shape of one tcgen05 mma instruction can deal with. See more details in [PTX Document 9.7.16.2.1. Matrix Shape](https://docs.nvidia.com/cuda/parallel-thread-execution/#tcgen05-matrix-shape).
-# From beginning, we choose the biggest one as it's easy to reach SOL.
-#
-# - mma_tiler_mnk: The GEMM kernel is normally implemented as blocked GEMM (see figure 1). Mma tiler is the block shape that one CTA or two CTAs will process. Whether one or two is determined by the issue granularity of tcgen05. See more details in [PTX Document 9.7.16.5. Issue Granularity](https://docs.nvidia.com/cuda/parallel-thread-execution/#tcgen05-issue-granularity).
-# From beginning, we choose one CTA to issue tcgen05 for simplicity.
-#
-# - threads_per_cta: The number of threads we need to use in one CTA. To take fully use of a SM (streaming multiprocessor), it's at least 128.
-#
-# - ab_stages: The number demonstrates how many blocks that TMA can load before each block's computation. It's usually limited by the smem capacity. For mma_tiler_mnk (128, 256, 64), we can set it as 4 at most.
-#
-# - acc_stage: As each CTA only computes one block of acc and stores out, the number is 1.
-#
-#
 
 # %%
 io_dtype = cutlass.Float16
@@ -112,14 +45,7 @@ threads_per_cta = 128
 ab_stages = 4
 acc_stage = 1
 
-# %% [markdown]
-# Then, let's define the problem sizes and initialize the input & output tensors, i.e. $A$, $B$, and $C$.
-#
-# We start with a typical computation bound case. i.e. 8kx8kx8k. It's also large enough for each dimension to avoid tile quantization issue.
-
-# %%
-m, n, k = 8192, 8192, 8192
-
+M, N, K = 8192, 8192, 8192
 
 # Make K-major tensors (torch tensors are row-major)
 def make_tensors(mn, k, dtype):
@@ -127,38 +53,21 @@ def make_tensors(mn, k, dtype):
     return torch.empty(*shape, dtype=torch.int32).random_(-2, 2).to(dtype=dtype, device="cuda")
 
 
-a = make_tensors(m, k, cutlass_torch.dtype(io_dtype))
-b = make_tensors(n, k, cutlass_torch.dtype(io_dtype))
-c = make_tensors(m, n, cutlass_torch.dtype(io_dtype))
-a_tensor = from_dlpack(a).mark_layout_dynamic(leading_dim=1)
-b_tensor = from_dlpack(b).mark_layout_dynamic(leading_dim=1)
-c_tensor = from_dlpack(c).mark_layout_dynamic(leading_dim=1)
+A = make_tensors(M, K, cutlass_torch.dtype(io_dtype))
+B = make_tensors(N, K, cutlass_torch.dtype(io_dtype))
+C = make_tensors(M, N, cutlass_torch.dtype(io_dtype))
+a_tensor = from_dlpack(A).mark_layout_dynamic(leading_dim=1)
+b_tensor = from_dlpack(B).mark_layout_dynamic(leading_dim=1)
+c_tensor = from_dlpack(C).mark_layout_dynamic(leading_dim=1)
 
-# %% [markdown]
-# Before writing kernel, we need to configurate basic components in a GEMM operation.
-#
-# 1. Tiled MMA. The tiled MMA helps calculate GEMM for one mma tile. We configurate it as tcgen05 MMA.
-#
-# 2. Smem layous for A and B. They must match the post-partitioned (CTA-local) shapes expected by the MMA instructions.
-# sm100_utils provides functions to determine the post-partitioned shape.
-# These functions take the tiled MMA, and the mma tiler as inputs and returns a shape that is at least rank-3
-# where the first mode has the same shape as the MMA instruction, 2nd and 3rd mode expresses the number of time
-# MMA instr is repeated in M/N mode and K mode of MMA tile, respectively.
-# These SMEM layouts are swizzled to improve MMA performance.
-#
-# 3. TMA descriptors for A & B. We've already know A, B tensors' info in both GMEM (global memory) & SMEM (shared memory). We take those to generate TMA descriptors & tme tensors. They helps load a block of A & B from GMEM to SMEM.
-#
-# ## Host Code
-#
-# Host code constructs the components introduced above. Besides, we calculate the grid shape & launch the kernel with these as parameters.
-from cutlass._mlir.dialects._cute_nvgpu_enum_gen import _cutegpuarchenum, _cutemmaoperandenum
-from cutlass._mlir.ir import Context, Location
-operand_mode = tcgen05.OperandMajorMode.K
-context = Context()
 
-operand_ir = _cutemmaoperandenum(operand_mode.value, context)
+# operand_mode = tcgen05.OperandMajorMode.K
+# context = Context()
+
+# operand_ir = _cutemmaoperandenum(operand_mode.value, context)
 
 # %%
+
 @cute.jit
 def host_function(
     a: cute.Tensor,
@@ -166,6 +75,7 @@ def host_function(
     c: cute.Tensor,
     kernel: cutlass.Constexpr,
 ):
+   # breakpoint()
     # Construct tiled MMA
     op = tcgen05.MmaF16BF16Op(
         io_dtype,
@@ -177,7 +87,8 @@ def host_function(
         tcgen05.OperandMajorMode.K,
     )
     print(op)
-
+    atom = cute.make_mma_atom(op)
+    trait = atom._trait
     tiled_mma = cute.make_tiled_mma(op)
     print(tiled_mma)
     
@@ -229,11 +140,14 @@ def host_function(
     #     grid=grid_shape,
     #     block=(threads_per_cta, 1, 1),
     # )
+
 breakpoint()
 compile_opts = (KeepPTX, EnableAssertions, GenerateLineInfo)
 compiler = cute.compile
 fn = compiler.__getitem__(compile_opts)(host_function, a_tensor, b_tensor, c_tensor, None)
+
 breakpoint()
+sys.exit(0)
 # %% [markdown]
 # ## Structure of the Kernel
 #
