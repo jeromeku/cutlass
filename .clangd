@@ -1,27 +1,27 @@
 CompileFlags:
-  Compiler: /usr/local/cuda/bin/nvcc
   Add:
-    - -I/home/jk/cutlass/include 
-    - -I/home/jk/cutlass/tools/util/include
-    - -I/home/jk/cutlass/examples/common
-    - -I/home/jk/cutlass/test/unit/common
-    
-    # - --cuda-gpu-arch=sm_100a
+    - -I/home/jeromeku/cutlass/include
+    - -I/home/jeromeku/cutlass/tools/util/include
+    - -I/home/jeromeku/cutlass/examples/common
+    - -I/home/jeromeku/cutlass/test/unit/common
+    - -I/usr/local/cuda/include
     - "-xcuda"
     - "-ferror-limit=0"
     - --std=c++17
     - "-D__INTELLISENSE__"
     - "-D__CLANGD__"
-    - "-DCUDA_12_0_SM90_FEATURES_SUPPORTED 1"
-    - "-DCUTLASS_ARCH_MMA_SM100_SUPPORTED 1"
-    - "-DCUTLASS_ARCH_MMA_SM90_SUPPORTED 1"
-    - "-D_LIBCUDACXX_STD_VER=12"
+    - "-DCUDA_12_0_SM90_FEATURES_SUPPORTED=1"
+    - "-DCUTLASS_ARCH_MMA_SM100_SUPPORTED=1"
+    - "-DCUTLASS_ARCH_MMA_SM90_SUPPORTED=1"
+    - "-D_LIBCUDACXX_STD_VER=17"
     - "-D__CUDACC_VER_MAJOR__=12"
     - "-D__CUDACC_VER_MINOR__=9"
     - "-D__CUDA_ARCH__=1000"
     - "-D__CUDA_ARCH_FEAT_SM90_ALL"
     - "-D__CUDA_ARCH_FEAT_SM100_ALL"
+    - "-DCUTE_HOST_DEVICE=__host__ __device__"
     - "-Wno-invalid-constexpr"
+    - "-Wno-unknown-cuda-version"
   Remove:
 #strip CUDA fatbin args
     - "-Xfatbin*"
