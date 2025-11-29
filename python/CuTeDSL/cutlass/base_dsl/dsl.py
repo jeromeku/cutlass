@@ -616,6 +616,7 @@ class BaseDSL:
         args_spec: inspect.FullArgSpec,
     ):
         """Create list of arguments that will be passed to MLIR's func.func op"""
+<<<<<<< HEAD
         import inspect
         stack = inspect.stack()
         this_frame = stack[0]
@@ -623,6 +624,8 @@ class BaseDSL:
         print(f"BASEDSL::{this_frame.filename}{this_frame.lineno}")
         for i in range(1, 4):
             print(f" {stack[i].filename}:{stack[i].lineno}")
+=======
+>>>>>>> a8908f0f (add upstream python)
 
         def gen_exec_args(input_args, arg_names, annotations, fop_args):
             assert len(input_args) == len(arg_names)
