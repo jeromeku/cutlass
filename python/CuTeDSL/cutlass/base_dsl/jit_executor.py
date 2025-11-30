@@ -458,6 +458,17 @@ class JitExecutor:
         exec_context: Optional[JitExecuteContext],
         jit_time_profiling: bool,
     ):
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:4]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+
+        breakpoint()
         # JitExecutor will keep JitCompiledFunction alive so that the underlying
         # ExecutionEngine and module data is not discarded until runtime callables
         # are garbage collected.
@@ -508,6 +519,16 @@ class JitExecutor:
             raise DSLRuntimeError(f"💥💥💥 Runtime Crash 💥💥💥", cause=e)
 
     def __call__(self, *args, **kwargs):
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:4]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
         exe_args, adapted_args = self.generate_execution_args(*args, **kwargs)
         self.run_compiled_program(exe_args)
 
@@ -675,6 +696,15 @@ class JitCompiledFunction:
         CUDA errors. If you need to call the kernel on multiple devices use `to`
         to return a per-device function.
         """
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:4]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
         exe_args, adapted_args = self.generate_execution_args(*args, **kwargs)
         return self.run_compiled_program(exe_args)
 

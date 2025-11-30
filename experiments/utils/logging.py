@@ -42,11 +42,14 @@ def patch_cutlass_env(
     logdir: str = "cute_logs",
     log_level: int = logging.DEBUG,
     arch: str = None,
+    disable_cache: bool = True
 ):
     # Need to set arch env flag before importing cutlass
     if arch is not None:
         os.environ[f"{PREFIX}_ARCH"] = arch
-    
+    if disable_cache:
+        os.environ[f"{PREFIX}_DISABLE_FILE_CACHING"] = "1"
+        
     import cutlass.base_dsl.utils.logger as cutlass_logger
     from cutlass.base_dsl import BaseDSL
     from cutlass.base_dsl.arch import Arch

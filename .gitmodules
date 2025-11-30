@@ -1,0 +1,3 @@
+[submodule "tvm-ffi"]
+	path = tvm-ffi
+	url = https://github.com/jeromeku/tvm-ffi

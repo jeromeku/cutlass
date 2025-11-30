@@ -1,6 +1,8 @@
 # ruff: noqa E402
+from contextlib import contextmanager
 
-def dump_mlir_pipeline(dump_dir="cute_pipeline", *, dump_ptx: bool = False, module_name: str = None):
+@contextmanager
+def dump_mlir_pipeline(enable: bool = True, dump_dir="cute_pipeline", *, dump_ptx: bool = False, module_name: str = None):
     import os
     from cutlass.base_dsl import compiler as _cute_compiler    
     from cutlass.base_dsl.utils.logger import log
@@ -9,6 +11,11 @@ def dump_mlir_pipeline(dump_dir="cute_pipeline", *, dump_ptx: bool = False, modu
     logger = log()
     module_name = module_name or "MODULE"
 
+    os.makedirs(dump_dir, exist_ok=True)
+    before_path = os.path.join(dump_dir, "BEFORE.mlir")
+    after_path = os.path.join(dump_dir, "AFTER.mlir")
+    posthook_path = os.path.join(dump_dir, "POSTHOOK.mlir")
+    
     def _compile(
         self: _cute_compiler.Compiler,
         module: Module,
@@ -24,11 +31,8 @@ def dump_mlir_pipeline(dump_dir="cute_pipeline", *, dump_ptx: bool = False, modu
                 print("DEPRECATED: use cuteDSL's builtin PTX / CUBIN dumping tools")
                 pipeline = pipeline.replace("cubin-format=bin", "cubin-format=isa")
             logger.debug(f"Dumping mlir pipeline to {dump_dir}")
-            breakpoint()
-            os.makedirs(dump_dir, exist_ok=True)
-            before_path = os.path.join(dump_dir, "BEFORE.mlir")
-            after_path = os.path.join(dump_dir, "AFTER.mlir")
-            module.dump()
+            
+            #module.dump()
             with open(before_path, 'w') as f:
                 print(module, file=f)
 
@@ -65,6 +69,16 @@ def dump_mlir_pipeline(dump_dir="cute_pipeline", *, dump_ptx: bool = False, modu
                     arch=arch,
                 ) from e
             raise e
-                
+       
+        if self._post_compile_hook:
+            self._post_compile_hook(module)
+            logger.debug(f"Dumping posthook module to {posthook_path}")
+            with open(posthook_path, 'w') as f:
+                print(module, file=f)
+
     _original_compile = _cute_compiler.Compiler.compile
     _cute_compiler.Compiler.compile = _compile
+    
+    yield
+    
+    _cute_compiler.Compiler.compile = _original_compile
