@@ -146,7 +146,7 @@ compile_opts = (KeepPTX, EnableAssertions, GenerateLineInfo)
 compiler = cute.compile
 fn = compiler.__getitem__(compile_opts)(host_function, a_tensor, b_tensor, c_tensor, None)
 
-breakpoint()
+
 sys.exit(0)
 # %% [markdown]
 # ## Structure of the Kernel

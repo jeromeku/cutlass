@@ -416,6 +416,14 @@ class CutlassBaseDSL(BaseDSL):
         :param original_function_name: The name of the original function without mangling.
         :return: The compiled function.
         """
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:10]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
         if self.compile_options.enable_tvm_ffi:
             # TVM FFI post compile logic
             # attach extra ABI function to the MLIR module

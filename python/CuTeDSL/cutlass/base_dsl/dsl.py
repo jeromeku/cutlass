@@ -994,7 +994,17 @@ class BaseDSL:
         """
         Compile and JIT an MLIR module.
         """
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
 
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:10]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
+        
         try:
             self.diagnostic()
 
@@ -1220,6 +1230,17 @@ class BaseDSL:
         dynamic_kwargs=None,
         original_function_name=None,
     ):
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:10]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
+        
         # If `gpu-arch` is set by compile_options, use it. Otherwise, use the arch from the environment variable.
         compile_gpu_arch = (
             self.envar.arch

@@ -78,6 +78,17 @@ class CudaDialectJitCompiledFunction(JitCompiledFunction):
         prefix=None,
         load_from_binary=False,
     ):
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:4]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
+
         self.ir_module = ir_module
         self.engine = engine
         self.capi_func = capi_func
@@ -275,6 +286,16 @@ class CudaDialectJitCompiledFunction(JitCompiledFunction):
         :return: A callable executor function.
         :rtype: JitExecutor
         """
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        
+        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
+        for s in stack[1:10]:
+            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
+        
+        breakpoint()
+        
         super()._validate_engine()
         with self._executor_lock:
             # We need to ensure that the modules are loaded if not already
