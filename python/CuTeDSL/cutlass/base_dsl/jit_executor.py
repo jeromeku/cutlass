@@ -464,7 +464,7 @@ class JitExecutor:
         
 
         print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
-        for s in stack[1:4]:
+        for s in stack[1:10]:
             print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
         
 
@@ -525,7 +525,7 @@ class JitExecutor:
         
 
         print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
-        for s in stack[1:4]:
+        for s in stack[1:10]:
             print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
         
         breakpoint()
@@ -701,7 +701,7 @@ class JitCompiledFunction:
         this_frame = stack[0]
         
         print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
-        for s in stack[1:4]:
+        for s in stack[1:10]:
             print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
         
         breakpoint()
