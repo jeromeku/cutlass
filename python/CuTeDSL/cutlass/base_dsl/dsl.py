@@ -480,6 +480,7 @@ class BaseDSL:
             @wraps(func)
             def jit_wrapper(*args, **kwargs):
                 func_ptr = BaseDSL._preprocess_and_execute(func)
+                breakpoint()
                 return getattr(func._dsl_object, executor_name)(
                     func_ptr, *args, **kwargs
                 )
@@ -640,7 +641,6 @@ class BaseDSL:
                 )
 
                 if not ir_arg:
-                    breakpoint()
                     # If it's not a known type, try JIT argument adapter
                     # to convert the argument if possible
                     adapter = JitArgAdapterRegistry.get_registered_adapter(type(arg))

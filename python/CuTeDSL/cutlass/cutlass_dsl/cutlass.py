@@ -952,6 +952,13 @@ class KernelLauncher:
         *func_args,
         **func_kwargs,
     ):
+        import inspect
+        stack = inspect.stack()
+        this_frame = stack[0]
+        print(f"{this_frame.function} :: {this_frame.filename}:{this_frame.lineno}")
+        for s in stack[1:10]:
+            print(f" --> {s.function} :: {s.filename}:{s.lineno}")
+            
         self.dsl = dsl
         self.kernelGenHelper = kernelGenHelper
         self.funcBody = funcBody
