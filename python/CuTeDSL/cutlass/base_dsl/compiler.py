@@ -183,17 +183,6 @@ class Compiler:
         arch: str = "",
     ):
         """Compiles and jits the module."""
-
-        import inspect
-        stack = inspect.stack()
-        this_frame = stack[0]
-        
-        print(f"!!!DEBUG::{this_frame.filename}:{this_frame.lineno} {this_frame.function} called from:")
-        for s in stack[1:10]:
-            print(f"!!!DEBUG --> {s.filename}:{s.lineno} {s.function}")
-        
-        breakpoint()
-
         self.compile(
             module,
             pipeline,
@@ -397,7 +386,7 @@ class CompileOptions:
             EnableTVMFFI: EnableTVMFFI(False),
             DumpDir: DumpDir(""),
         }
-
+        
         if options is not None:
             self._update(options)
 
@@ -575,7 +564,6 @@ class CompileCallable:
             elif isinstance(option, tuple):
                 return tuple(preprocess_options(opt) for opt in option)
             return option
-
         self._compile_options = CompileOptions(preprocess_options(options))
 
     def __getitem__(self, options):

@@ -256,13 +256,13 @@ def copy_python_packages(extract_dir: Path, package_root: Path) -> Tuple[int, in
             dest_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Copy file if it doesn't exist
-            if dest_file.exists():
-                skipped_count += 1
-                logger.debug(f"  Skipping {rel_path} (already exists)")
-            else:
-                shutil.copy2(src_file, dest_file)
-                copied_count += 1
-                logger.info(f"  Copied {rel_path}")
+            # if dest_file.exists():
+            #     skipped_count += 1
+            #     logger.debug(f"  Skipping {rel_path} (already exists)")
+            # else:
+            shutil.copy2(src_file, dest_file)
+            copied_count += 1
+            logger.info(f"  Copied {rel_path}")
 
     logger.info(
         f"Cutlass directory update: {copied_count} files copied, {skipped_count} files skipped"

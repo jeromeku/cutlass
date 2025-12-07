@@ -1,3 +1,6 @@
 [submodule "tvm-ffi"]
 	path = tvm-ffi
 	url = https://github.com/jeromeku/tvm-ffi
+[submodule "thirdparty/nvshmem"]
+	path = thirdparty/nvshmem
+	url = https://github.com/jeromeku/nvshmem
