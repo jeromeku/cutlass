@@ -992,7 +992,7 @@ class KernelLauncher:
         self.dsl._preprocess_launch_config_args(args, kwargs)
         config = self.dsl.LaunchConfig(*args, **kwargs)
         kernel_attrs = _build_kernel_attrs(config)
-
+        breakpoint()
         kernel_generator = self.dsl.kernel_launcher(
             requiredArgs=["config"],
             unitAttrNames=["gpu.kernel", "cute.kernel"],
