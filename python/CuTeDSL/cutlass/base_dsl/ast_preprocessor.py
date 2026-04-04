@@ -522,7 +522,7 @@ class DSLPreprocessor(ast.NodeTransformer):
         return exec_globals.get(function_name)
 
     @staticmethod
-    def print_ast(transformed_tree=None):
+    def print_ast(transformed_tree=None, function_name=None):
         print("#", "-" * 40, "Transformed AST", "-" * 40)
         unparsed_code = ast.unparse(transformed_tree)
         print(unparsed_code)
